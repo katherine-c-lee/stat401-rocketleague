@@ -1,12 +1,9 @@
 # load libraries
 library(tidyverse)
 
-# download case data from NY Times website
-url = "https://raw.githubusercontent.com/nytimes/covid-19-data/master/us-counties.csv"
-case_data_raw = read_csv(url)
+# download game data
+setwd("~/Dropbox (Penn)/__SPRING 2022/STAT401")
+data <- read.csv(file = 'combined.csv')
 
 # write raw data to file
-write_tsv(x = case_data_raw, file = "data/raw/case_data_raw.tsv")
-
-# download health rankings data from the web 
-# (omitted from this template)
+write.csv(x = data, file = "data/raw/data_raw.csv")

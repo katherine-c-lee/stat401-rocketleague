@@ -2,30 +2,22 @@
 library(lubridate)
 library(tidyverse)
 
-# load raw case data
-case_data_raw = read_tsv(file = "data/raw/case_data_raw.tsv")
+# load raw game data
+game_data_raw = read.csv(file = "data/raw/data_raw.csv")
 
-# clean case data
-case_data = case_data_raw %>%
-  na.omit() %>%                               # remove NA values
-  filter(year(date) == 2020) %>%              # keep data from 2020 
-  group_by(fips, county, state) %>%           # group by county
-  summarise(total_cases = sum(cases),         # total cases per county
-            total_deaths = sum(deaths)) %>%   # total deaths per county
-  ungroup() %>%
-  mutate(case_fatality_rate =                 # case_fatality_rate = 
-           total_deaths/total_cases*100) %>%  #  total_deaths/total_cases
-  select(-total_cases, -total_deaths)         # remove intermediate variables
+# clean game data
+game_data <- game_data_raw %>%
+  as_tibble() %>%
+  rename('idx' = 'Unnamed..0') %>%
+  select(-c("X.1", "X")) %>%
 
-# load raw county health data
-# (omitted from this template)
+game_data$goal <- as.logical(game_data$goal) %>%
+  as.numeric()
 
-# clean county health data
-# (omitted from this template, reading from file instead)
-county_health_data = read_tsv("data/raw/county_health_data.tsv")
+game_data$shot <- as.logical(game_data$shot)
+game_data$is_orange <- as.logical(game_data$is_orange)
 
-# join county health data with case data
-covid_data = inner_join(county_health_data, case_data, by = "fips")
+head(game_data)
 
 # write cleaned data to file
-write_tsv(covid_data, file = "data/clean/covid_data.tsv")
+write.csv(game_data, file = "data/clean/game_data.csv")
