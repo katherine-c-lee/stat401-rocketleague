@@ -5,11 +5,14 @@ library(tidyverse)
 # load raw game data
 game_data_raw = read.csv(file = "data/raw/data_raw.csv")
 
+# read in from comp
+game_data_raw <- data
+
 # clean game data
 game_data <- game_data_raw %>%
   as_tibble() %>%
   rename('idx' = 'Unnamed..0') %>%
-  select(-c("X.1", "X")) %>%
+  select(-c("X"))
 
 game_data$goal <- as.logical(game_data$goal) %>%
   as.numeric()
