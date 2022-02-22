@@ -12,7 +12,8 @@ library(keras)         # to train neural networks
 library(RColorBrewer)
 
 ###### Load data ########
-setwd('/Users/lindawang/Library/Mobile Documents/com~apple~CloudDocs/Linda Wang/Spring 2022 Classes/STAT 401/Final Project/stat401-rocketleague/code')
+# setwd('/Users/lindawang/Library/Mobile Documents/com~apple~CloudDocs/Linda Wang/Spring 2022 Classes/STAT 401/Final Project/stat401-rocketleague/code')
+setwd("~/Dropbox (Penn)/__SPRING 2022/STAT401/stat401-rocketleague")
 
 game_data <- read.csv(file = "data/clean/game_data.csv")
 
@@ -192,3 +193,26 @@ data_with_xg %>%
   theme_bw() +
   scale_colour_gradientn(colours = terrain.colors(10)) +
   labs(x = "Shot Taker X Position", y = "Shot Taker Y Position")
+
+data_with_xg %>%
+  filter(predictions>0.7) %>%
+  ggplot(aes(x = shot_taker_pos_x, y = shot_taker_pos_y, colour = xg)) +
+  geom_point(size = 0.001) +
+  geom_tile() +
+  theme_bw() +
+  scale_colour_gradientn(colours = terrain.colors(10)) +
+  labs(x = "Shot Taker X Position", y = "Shot Taker Y Position")
+
+install.packages("scatterplot3d") # Install
+library("scatterplot3d") # load
+
+colors <- c("#999999", "#E69F00")
+colors = colors[as.numeric(data_with_xg$goal)]
+scatterplot3d(data_with_xg[,17:19], pch = 16, grid = TRUE, box = FALSE)
+
+install.packages("plotly")
+library(plotly)
+
+plot_ly(x = data_with_xg[,17], y = data_with_xg[,18], z = data_with_xg[,19],
+        type = "scatter3d", marker = list(size = 2)) %>%
+  add_markers(color = ~data_with_xg[,2])

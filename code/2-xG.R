@@ -11,7 +11,6 @@ library(RColorBrewer)
 
 # load clean game data
 setwd("~/Dropbox (Penn)/__SPRING 2022/STAT401")
-game_data <- read.csv(file = "")
 game_data <- read.csv(file = "data/clean/game_data.csv")
 
 # prep data for logistic regression with shot data
