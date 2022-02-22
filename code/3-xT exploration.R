@@ -9,6 +9,9 @@ library(gbm)           # boosting
 library(keras)         # to train neural networks
 library(RColorBrewer)
 
+
+#### to do: correlation heat map
+
 setwd("~/Dropbox (Penn)/__SPRING 2022/STAT401")
 game_data <- read.csv(file = 'combined.csv')
 game_data
