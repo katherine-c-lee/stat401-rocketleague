@@ -3,7 +3,7 @@ library(lubridate)
 library(tidyverse)
 
 # load raw game data
-game_data_raw = read.csv(file = "data/raw/data_raw.csv")
+# game_data_raw = read.csv(file = "data/raw/data_raw.csv")
 
 # read in from comp
 game_data_raw <- data
@@ -23,4 +23,4 @@ game_data$is_orange <- as.logical(game_data$is_orange)
 head(game_data)
 
 # write cleaned data to file
-write.csv(game_data, file = "data/clean/game_data.csv")
+# write.csv(game_data, file = "data/clean/game_data.csv")

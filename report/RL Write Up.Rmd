@@ -1,0 +1,57 @@
+---
+title: 'Rocket League Analysis'
+author: 'Hugo Leo, Katie Lee, Linda Wang'
+date: 'March 4, 2022'
+output:
+  bookdown::pdf_document2:
+    number_sections: yes
+    toc: yes
+    toc_depth: '2'
+    font-size: 12
+urlcolor: blue
+---
+```{r setup, include=FALSE, message = FALSE}
+options(scipen = 0, digits = 3)  # controls number of significant digits printed
+library(tidyverse)
+library(kableExtra)
+```
+
+```{r coverpage, out.width = "60%", fig.align='center', echo = FALSE, fig.pos = "H"}
+knitr::include_graphics("../results/coverpage.jpeg")
+```
+
+\bigskip
+
+\newpage
+
+# Executive Summary
+
+[ to write ]
+
+\newpage
+
+# Data Source
+[ to write ]
+
+# Data Cleaning
+- dropped car features, only used location data
+
+```{r}
+data_condensed <- read.csv("../results/clean_shot_data.csv") %>%
+  select(c(goal, ball_pos_x, ball_pos_y, ball_pos_z,distanceToGoal,shot_taker_pos_x))
+
+data_condensed %>%
+  kable(format = "latex", row.names = NA, 
+        booktabs = TRUE, digits = 2, 
+        caption = "Subset of Location Features") %>%
+  kable_styling(position = "center", latex_options = "HOLD_position")
+```
+
+# Exploratory Data Analysis
+
+```{r xyfield, out.width = "100%", fig.cap = "X-Y Field and Predicted Expected Goals", fig.align='center', echo = FALSE, fig.pos = "H"}
+knitr::include_graphics("../results/xy_field.png")
+```
+
+# Feature Engineering
+

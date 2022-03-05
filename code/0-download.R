@@ -5,5 +5,6 @@ library(tidyverse)
 setwd("~/Dropbox (Penn)/__SPRING 2022/STAT401")
 data <- read.csv(file = 'combined.csv')
 
+game_data_raw <- data
 # write raw data to file
-write.csv(x = data, file = "data/raw/data_raw.csv")
+# write.csv(x = data, file = "data/raw/data_raw.csv")
