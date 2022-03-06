@@ -1,6 +1,6 @@
 ---
 title: 'Rocket League Analysis'
-author: 'Hugo Leo, Katie Lee, Linda Wang'
+author: 'Katie Lee, Hugo Leo, Linda Wang'
 date: 'March 4, 2022'
 output:
   bookdown::pdf_document2:
@@ -26,7 +26,11 @@ knitr::include_graphics("../results/coverpage.jpeg")
 
 # Executive Summary
 
-[ to write ]
+Rocket League is a multi-platform game where players control cars with a rocket booster and aim to score as many goals as possible within 5 minutes using an oversized ball. The ball never leaves the field and is a team game, but for our analysis, we focused on 2 versus 2 player mode. Players have the ability to control the direction, velocity, and rotation of their cars and can jump to hit the ball. This allows players the ability to take shots or control the car to dribble, pass, and block incoming shots.
+
+Our dataset includes random frames of 2 versus 2 player Rocket League games that includes location data of all 4 players, car features, ball position, and whether or not a particular shot resulted in a goal. 
+
+For our analysis, we built an expected goals (xG) model using location data to predict goals for a given frozen game frame. xG is important in that it is an estimator of goals a team is expected to score in the long run. Using our xG model, we explored individual player ability and analyzed the question: are good players good because they use more attempts, or are good players good because they are truly better skilled?
 
 \newpage
 
@@ -35,10 +39,12 @@ knitr::include_graphics("../results/coverpage.jpeg")
 
 # Data Cleaning
 - dropped car features, only used location data
+- because we are interested in expected goals and evaluating shot ability, we filtered for shot = true only
 
 ```{r}
 data_condensed <- read.csv("../results/clean_shot_data.csv") %>%
-  select(c(goal, ball_pos_x, ball_pos_y, ball_pos_z,distanceToGoal,shot_taker_pos_x))
+  select(c(goal, ball_pos_x, ball_pos_y, ball_pos_z,
+           distanceToGoal, shot_taker_pos_x))
 
 data_condensed %>%
   kable(format = "latex", row.names = NA, 
@@ -48,10 +54,37 @@ data_condensed %>%
 ```
 
 # Exploratory Data Analysis
-
-```{r xyfield, out.width = "100%", fig.cap = "X-Y Field and Predicted Expected Goals", fig.align='center', echo = FALSE, fig.pos = "H"}
+As a first step, we explored the location data to get a sense of the placement of the goal. Based on Figure \@ref(fig:xyfield), it seems that the goal post is located at $(0,5000,0)$.
+```{r xyfield, out.width = "100%", fig.cap = "X-Y Field and Shot Outcome", fig.align='center', echo = FALSE, fig.pos = "H"}
 knitr::include_graphics("../results/xy_field.png")
 ```
 
-# Feature Engineering
 
+
+# Expected Goals Models
+We built two expected goals models using logistic regression and boosted trees. Because of the nature of the dataset, we have data about the ball's trajectory, so we can easily compute whether a shot will result in a goal or not. However, for our model, we used position, velocity, angular velocity, and rotation of the shot taker, defender, and teammate to build our model. To train our model, we predicted the outcome of a shot (goal or no goal) for a particular frame. This implies that our xG estimates are for a set of positions of the shot taker, teammate, and defenders. 
+
+## Analysis Goals
+- how is xg used in soccer
+- why is xg important
+
+## Feature Engineering
+We used feature engineering to transform the raw data into features that can be used in supervised learning. 
+
+## Logistic Regression
+```{r}
+glm_fit_output <- read.csv("../results/glm_fit_output.csv") %>%
+  select(X, coefficients.Estimate, coefficients.Pr...z..) %>%
+  arrange(coefficients.Pr...z..) %>%
+  head(10) %>%
+  select(X, coefficients.Estimate) %>%
+  rename("Coefficient Estimate" = coefficients.Estimate)
+
+glm_fit_output %>%
+  kable(format = "latex", row.names = NA, 
+        booktabs = TRUE, digits = 2, 
+        caption = "Subset of Statististically Significant Covariates") %>%
+  kable_styling(position = "center", latex_options = "HOLD_position")
+```
+
+## XGBoost

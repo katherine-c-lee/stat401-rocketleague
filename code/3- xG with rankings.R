@@ -133,9 +133,13 @@ train_samples1 = sample(1:n1, round(0.8*n1))
 shot_train = clean_shot_data[train_samples1,]
 shot_test = clean_shot_data[-train_samples1,]
 
-glm_fit = glm(goal ~ . - idx, family = "binomial" (link = "logit"), 
+glm_fit = glm(goal ~ . - idx - distanceToGoal, 
+              family = "binomial" (link = "logit"), 
               data = shot_train)
 summary(glm_fit)
+
+setwd("~/Dropbox (Penn)/__SPRING 2022/STAT401/stat401-rocketleague/results")
+write.csv(summary(glm_fit)['coefficients'],file='../results/glm_fit_output.csv')
 
 # misclassification rate
 glm_pred = predict(glm_fit, type = "response", newdata = shot_test)
@@ -210,10 +214,16 @@ predictions = predict(gbm_fit, type = "response", newdata = xgdata)
 data_with_xg = cbind(xgdata, predictions) %>%
   rename(xg = predictions)
 
+############################# xG Model Evaluation ##############################
+# for benchmark, find log loss when just predicting the mean of the training set
+
+
+
 ################################# Excess Goals #################################
-mean_xg <- data_with_xg %>%
+# sum all xgs for expected goals
+total_xg <- data_with_xg %>%
   group_by(shot_taker_id) %>%
-  summarise(avg_xg = mean(xg))
+  summarise(sum_xg = sum(xg))
 
 total_goals <- data_with_xg %>%
   group_by(shot_taker_id) %>%
@@ -223,16 +233,20 @@ total_attempts <- data_with_xg %>%
   group_by(shot_taker_id) %>%
   summarise(count = n())
 
-aggregate <- mean_xg %>%
+aggregate <- total_xg %>%
   inner_join(total_goals, by = "shot_taker_id") %>%
   inner_join(total_attempts, by = "shot_taker_id") %>%
-  mutate(outperformance = total_goals/(avg_xg * count)) %>%
+  mutate(outperformance = total_goals/(sum_xg)) %>%
   mutate(actual_goal_rate = total_goals/count) %>%
   arrange(desc(outperformance)) %>%
   filter(count>50)
 
 # top 5 players 
 head(aggregate)
+
+# top average xg players
+total_xg %>%
+  arrange(desc(sum_xg))
 
 # filter data for top players
 data_with_xg %>%
