@@ -41,25 +41,11 @@ For our analysis, we built an expected goals (xG) model using location data to p
 - dropped car features, only used location data
 - because we are interested in expected goals and evaluating shot ability, we filtered for shot = true only
 
-```{r}
-data_condensed <- read.csv("../results/clean_shot_data.csv") %>%
-  select(c(goal, ball_pos_x, ball_pos_y, ball_pos_z,
-           distanceToGoal, shot_taker_pos_x))
-
-data_condensed %>%
-  kable(format = "latex", row.names = NA, 
-        booktabs = TRUE, digits = 2, 
-        caption = "Subset of Location Features") %>%
-  kable_styling(position = "center", latex_options = "HOLD_position")
-```
-
 # Exploratory Data Analysis
 As a first step, we explored the location data to get a sense of the placement of the goal. Based on Figure \@ref(fig:xyfield), it seems that the goal post is located at $(0,5000,0)$.
 ```{r xyfield, out.width = "100%", fig.cap = "X-Y Field and Shot Outcome", fig.align='center', echo = FALSE, fig.pos = "H"}
 knitr::include_graphics("../results/xy_field.png")
 ```
-
-
 
 # Expected Goals Models
 We built two expected goals models using logistic regression and boosted trees. Because of the nature of the dataset, we have data about the ball's trajectory, so we can easily compute whether a shot will result in a goal or not. However, for our model, we used position, velocity, angular velocity, and rotation of the shot taker, defender, and teammate to build our model. To train our model, we predicted the outcome of a shot (goal or no goal) for a particular frame. This implies that our xG estimates are for a set of positions of the shot taker, teammate, and defenders. 
@@ -72,19 +58,26 @@ We built two expected goals models using logistic regression and boosted trees. 
 We used feature engineering to transform the raw data into features that can be used in supervised learning. 
 
 ## Logistic Regression
-```{r}
-glm_fit_output <- read.csv("../results/glm_fit_output.csv") %>%
-  select(X, coefficients.Estimate, coefficients.Pr...z..) %>%
-  arrange(coefficients.Pr...z..) %>%
-  head(10) %>%
-  select(X, coefficients.Estimate) %>%
-  rename("Coefficient Estimate" = coefficients.Estimate)
-
-glm_fit_output %>%
-  kable(format = "latex", row.names = NA, 
-        booktabs = TRUE, digits = 2, 
-        caption = "Subset of Statististically Significant Covariates") %>%
-  kable_styling(position = "center", latex_options = "HOLD_position")
+- discusss how we excluded teammate data? maybe because simple log reg doesn't know how to "split the credit"
+```{r glm-fit}
+load("../results/glm_fit.rda")
+summary(glm_fit)
 ```
 
 ## XGBoost
+
+
+# Appendix
+Subset of locational features used in models
+```{r}
+data <- read.csv("../results/clean_shot_data.csv") %>%
+  select(-c(X, idx)) %>%
+  select(-contains("_ang_vel_")) %>%
+  select(-contains("rot"))
+
+names(data) %>%
+  kable(format = "latex", row.names = NA, 
+        booktabs = TRUE, digits = 2, 
+        caption = "Subset of Location Features") %>%
+  kable_styling(position = "center", latex_options = "HOLD_position")
+```

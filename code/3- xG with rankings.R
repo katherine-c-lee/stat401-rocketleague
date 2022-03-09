@@ -138,9 +138,6 @@ glm_fit = glm(goal ~ . - idx - distanceToGoal,
               data = shot_train)
 summary(glm_fit)
 
-setwd("~/Dropbox (Penn)/__SPRING 2022/STAT401/stat401-rocketleague/results")
-write.csv(summary(glm_fit)['coefficients'],file='../results/glm_fit_output.csv')
-
 # misclassification rate
 glm_pred = predict(glm_fit, type = "response", newdata = shot_test)
 glm_pred_class <- ifelse(glm_pred > 0.5, 1, 0)
@@ -182,6 +179,9 @@ gbm_fit = gbm(goal ~ . -shot_taker_id,
               cv.folds = 5,
               data = shot_train_xg)
 summary(gbm_fit, n.trees = 200, plotit = FALSE)
+
+importance_matrix = xgb.importance(colnames(shot_train_xg), model = gbm_fit)
+importance_matrix
 
 # partial dependence plots
 plot(gbm_fit, i.var = "distanceToGoal", n.trees = 200, type = "response")
