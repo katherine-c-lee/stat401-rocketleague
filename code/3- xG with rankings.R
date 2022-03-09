@@ -149,7 +149,7 @@ glm_misclass
 
 # log loss
 library(MLmetrics)
-LogLoss(y_pred = glm_pred, y_true = shot_test$goal)
+glm_losloss_fe <- LogLoss(y_pred = glm_pred, y_true = shot_test$goal)
 
 # ROC curve
 pred_glm <- prediction(glm_pred, shot_test$goal)
@@ -199,7 +199,7 @@ gbm_misclass = mean(gbm_pred_class != shot_test_xg$goal)
 gbm_misclass
 
 # log loss
-LogLoss(y_pred = gbm_pred, y_true = shot_test_xg$goal)
+gbm_logloss <- LogLoss(y_pred = gbm_pred, y_true = shot_test_xg$goal)
 
 # ROC curve
 pred_gbm <- prediction(gbm_pred, shot_test_xg$goal)
@@ -216,8 +216,22 @@ data_with_xg = cbind(xgdata, predictions) %>%
 
 ############################# xG Model Evaluation ##############################
 # for benchmark, find log loss when just predicting the mean of the training set
+shot_train_xg # training dataset from xgboost
+avg_goals <- shot_train_xg %>%
+  summarise(avg_gaol = mean(goal)) %>%
+  as.numeric()
+avg_goals_repped <- rep(avg_goals, dim(shot_test_xg)[[1]])
+pred_naive <- cbind(shot_test_xg, avg_goals_repped)
+names(pred_naive)
+naive_logloss <- LogLoss(y_pred = avg_goals_repped, y_true = shot_test_xg$goal)
 
-
+xg_model_eval <- tribble(
+  ~Model, ~"Log Loss", 
+  #--|--|----
+  "Logistic Regression, FE, no teammate data", glm_losloss_fe,
+  "xgBoost, FE, with teammate data", gbm_logloss,
+  "Naive classifier", naive_logloss
+)
 
 ################################# Excess Goals #################################
 # sum all xgs for expected goals
