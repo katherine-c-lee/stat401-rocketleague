@@ -180,8 +180,7 @@ gbm_fit = gbm(goal ~ . -shot_taker_id,
               data = shot_train_xg)
 summary(gbm_fit, n.trees = 200, plotit = FALSE)
 
-importance_matrix = xgb.importance(colnames(shot_train_xg), model = gbm_fit)
-importance_matrix
+save(gbm_fit, file = "gbm_fit.Rda")
 
 # partial dependence plots
 plot(gbm_fit, i.var = "distanceToGoal", n.trees = 200, type = "response")

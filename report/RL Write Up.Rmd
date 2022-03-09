@@ -65,6 +65,10 @@ summary(glm_fit)
 ```
 
 ## XGBoost
+```{r}
+load("../results/gbm_fit.Rda")
+summary(gbm_fit, n.trees = 200, plotit = FALSE)
+```
 
 
 # Appendix
