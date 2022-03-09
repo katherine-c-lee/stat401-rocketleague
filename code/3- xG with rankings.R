@@ -234,6 +234,9 @@ xg_model_eval <- tribble(
 )
 
 ################################# Excess Goals #################################
+# using xgboost model with teammate data and engineered features as final model
+names(data_with_xg)
+
 # sum all xgs for expected goals
 total_xg <- data_with_xg %>%
   group_by(shot_taker_id) %>%
@@ -255,14 +258,24 @@ aggregate <- total_xg %>%
   arrange(desc(outperformance)) %>%
   filter(count>50)
 
-# top 5 players 
-head(aggregate)
+# top 5 players in terms of excess goals
+head(aggregate, 5)
+
+# top 5 players in terms of total shots taken
+aggregate %>%
+  arrange(desc(count)) %>%
+  head(5)   ## there is some overlap b/w the top 5 players by shots taken and top 5 by excess goals
+
+## this result could suggest that the game is really more based on luck and not really skill?
 
 # top average xg players
-total_xg %>%
-  arrange(desc(sum_xg))
+aggregate %>%
+  arrange(desc(sum_xg)) %>%
+  head(5)
 
+## shot taker id 76561198124326808 seems to be good at positioning and takes lots of shots
+  
 # filter data for top players
 data_with_xg %>%
   as_tibble() %>%
-  filter(shot_taker_id == "b9a4d2ec05b")
+  filter(shot_taker_id == "76561198028093603")
