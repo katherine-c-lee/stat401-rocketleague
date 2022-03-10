@@ -192,6 +192,19 @@ coef(ridge_fit, s = "lambda.1se") %>% head()
 coef(ridge_fit, s = "lambda.min") %>% head()
 save(ridge_fit, file = "results/ridge_fit.Rda")
 
+ridge_predictions = predict(ridge_fit, 
+                            newdata = shot_test, 
+                            s = "lambda.1se") %>% as.numeric()
+
+# misclassification rate
+ridge_pred_class <- ifelse(ridge_predictions > 0.5, 1, 0)
+ridge_misclass = mean(ridge_pred_class != shot_test$goal)
+ridge_misclass
+
+# log loss
+ridge_losloss_fe <- LogLoss(y_pred = ridge_predictions, y_true = shot_test$goal)
+ridge_losloss_fe
+
 #################################### Lasso #####################################
 lasso_fit = cv.glmnet(goal ~ . -idx,   
                       alpha = 1,                 
@@ -199,6 +212,13 @@ lasso_fit = cv.glmnet(goal ~ . -idx,
                       data = shot_train,
                       show_col_types = FALSE)
 save(lasso_fit, file = "results/lasso_fit.Rda")
+
+plot(lasso_fit)
+png(width = 6, 
+    height = 4,
+    res = 300,
+    units = "in", 
+    filename = "results/lasso-cv-plot.png")
 
 p = plot_glmnet(lasso_fit, shot_train, features_to_plot = 6, 
                 lambda = lasso_fit$lambda.min)
@@ -217,9 +237,22 @@ beta_hat_std %>%
   arrange(desc(abs(coefficient))) %>% 
   write_tsv("results/lasso-features-table.tsv")
 
+lasso_predictions = predict(lasso_fit, 
+                            newdata = shot_test, 
+                            s = "lambda.1se") %>% as.numeric()
+
+# misclassification rate
+lasso_pred_class <- ifelse(lasso_predictions > 0.5, 1, 0)
+lasso_misclass = mean(lasso_pred_class != shot_test$goal)
+lasso_misclass
+
+# log loss
+lasso_losloss_fe <- LogLoss(y_pred = lasso_predictions, y_true = shot_test$goal)
+lasso_losloss_fe
+
 ##################### Feature Engineering w/ Teammate Data #####################
 clean_shot_data <- shot_data %>%
-  select(-c(frame, time, is_orange, shot_taker_id,
+  select(-c(frame, time, is_orange,
             opp_1_id, opp_2_id)) %>%
   select(-contains("throttle"), -contains("name"), -contains("_dodge"),
          -contains("steer"), -contains("ping"), -contains("cam"),
@@ -320,6 +353,8 @@ clean_shot_data <- clean_shot_data %>%
 
 head(clean_shot_data, 5)
 
+names(clean_shot_data)
+
 #################################### xgBoost ################################### 
 # for data, rerun feature engineering code, except for removal of teammate data
 xgdata <- clean_shot_data %>%
@@ -344,6 +379,9 @@ boost_feature_importance <- summary(gbm_fit, n.trees = 200, plotit = FALSE) %>%
   head(10)
 
 save(gbm_fit, file = "gbm_fit.Rda")
+load("results/gbm_fit.Rda")
+summary(gbm_fit)
+
 write.csv(boost_feature_importance, 
           file = "results/boost_feature_importance.csv")
 
@@ -375,12 +413,16 @@ plot(perf_gbm)
 # apply predictions to full dataset
 predictions = predict(gbm_fit, type = "response", newdata = xgdata)
 
-data_with_xg = cbind(xgdata, predictions) %>%
-  rename(xg = predictions)
+data_with_boost_xg = cbind(xgdata, predictions) %>%
+  rename(xg = predictions) %>%
+  as_tibble()
+
+names(data_with_boost_xg)
 
 ############################# xG Model Evaluation ##############################
 # for benchmark, find log loss when just predicting the mean of the training set
 shot_train_xg # training dataset from xgboost
+
 avg_goals <- shot_train_xg %>%
   summarise(avg_gaol = mean(goal)) %>%
   as.numeric()
@@ -393,24 +435,26 @@ xg_model_eval <- tribble(
   ~Model, ~"Log Loss", 
   #--|--|----
   "Logistic Regression, FE, no teammate data", glm_losloss_fe,
+  "Ridge Regression, FE, no teammate data", ridge_losloss_fe,
+  "Lasso Regression, FE, no teammate data", lasso_losloss_fe,
   "xgBoost, FE, with teammate data", gbm_logloss,
   "Naive classifier", naive_logloss
-)
+) ## xgboost is best
 
 ################################# Excess Goals #################################
 # using xgboost model with teammate data and engineered features as final model
-names(data_with_xg)
+names(data_with_boost_xg)
 
 # sum all xgs for expected goals
-total_xg <- data_with_xg %>%
+total_xg <- data_with_boost_xg %>%
   group_by(shot_taker_id) %>%
   summarise(sum_xg = sum(xg))
 
-total_goals <- data_with_xg %>%
+total_goals <- data_with_boost_xg %>%
   group_by(shot_taker_id) %>%
   summarise(total_goals = sum(goal))
 
-total_attempts <- data_with_xg %>%
+total_attempts <- data_with_boost_xg %>%
   group_by(shot_taker_id) %>%
   summarise(count = n())
 
@@ -440,6 +484,7 @@ aggregate %>%
 ## shot taker id 76561198124326808 seems to be good at positioning and takes lots of shots
   
 # filter data for top players
-data_with_xg %>%
+data_with_boost_xg %>%
   as_tibble() %>%
   filter(shot_taker_id == "76561198028093603")
+
