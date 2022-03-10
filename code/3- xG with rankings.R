@@ -188,6 +188,7 @@ ridge_fit = cv.glmnet(goal ~ . -idx,
                       data = shot_train, 
                       show_col_types = FALSE)
 plot(ridge_fit)
+
 coef(ridge_fit, s = "lambda.1se") %>% head()
 coef(ridge_fit, s = "lambda.min") %>% head()
 save(ridge_fit, file = "results/ridge_fit.Rda")
@@ -214,11 +215,7 @@ lasso_fit = cv.glmnet(goal ~ . -idx,
 save(lasso_fit, file = "results/lasso_fit.Rda")
 
 plot(lasso_fit)
-png(width = 6, 
-    height = 4,
-    res = 300,
-    units = "in", 
-    filename = "results/lasso-cv-plot.png")
+
 
 p = plot_glmnet(lasso_fit, shot_train, features_to_plot = 6, 
                 lambda = lasso_fit$lambda.min)

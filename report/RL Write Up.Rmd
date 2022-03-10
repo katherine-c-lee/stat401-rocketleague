@@ -58,12 +58,18 @@ We built two expected goals models using logistic regression and boosted trees. 
 We used feature engineering to transform the raw data into features that can be used in supervised learning. 
 
 ## Logistic Regression
-- discuss how we excluded teammate data? maybe because MLE doesn't converge because of high correlation across variables and the goals varaible???
+- discuss how we excluded teammate data? maybe because MLE doesn't converge because of high correlation across variables and the goals variable???
 ```{r glm-fit}
 load("../results/glm_fit.rda")
 summary(glm_fit)
 ```
-
+## Penalized Regressions
+```{r ridgecv, out.width = "80%", fig.cap = "Cross Validation for Ridge Regression", fig.align='center', echo = FALSE, fig.pos = "H"}
+# knitr::include_graphics("../results/ridge-cv-plot.png")
+```
+```{r lassocv, out.width = "80%", fig.cap = "Cross Validation for Lasso Regression", fig.align='center', echo = FALSE, fig.pos = "H"}
+knitr::include_graphics("../results/lasso-cv-plot.png")
+```
 ## XGBoost
 ```{r}
 load("../results/gbm_fit.Rda")
@@ -79,6 +85,7 @@ boost_feature_importance %>%
   kable_styling(position = "center", latex_options = "HOLD_position")
 ```
 
+# Excess Goals
 
 # Appendix
 Subset of locational features used in models
