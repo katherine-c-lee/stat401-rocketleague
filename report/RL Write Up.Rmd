@@ -86,6 +86,7 @@ boost_feature_importance %>%
 ```
 
 # Excess Goals
+To extent our Expected Goals model, we measured players' excess goals, or outperformance. Outperformance is given by dividing total goals scored divided by the sum of the player's expected goal probabilities. An outperformance ratio above one suggests the player is a "good" player in the sense that they are a good shooter and are able to make more goals than what is expected based on their location, their opponent's location, and various ball features. 
 
 # Appendix
 Subset of locational features used in models
