@@ -58,7 +58,7 @@ We built two expected goals models using logistic regression and boosted trees. 
 We used feature engineering to transform the raw data into features that can be used in supervised learning. 
 
 ## Logistic Regression
-- discusss how we excluded teammate data? maybe because simple log reg doesn't know how to "split the credit"
+- discuss how we excluded teammate data? maybe because MLE doesn't converge because of high correlation across variables and the goals varaible???
 ```{r glm-fit}
 load("../results/glm_fit.rda")
 summary(glm_fit)
@@ -67,7 +67,16 @@ summary(glm_fit)
 ## XGBoost
 ```{r}
 load("../results/gbm_fit.Rda")
-summary(gbm_fit, n.trees = 200, plotit = FALSE)
+boost_feature_importance <- read.csv("../results/boost_feature_importance.csv") %>%
+  as_tibble() %>%
+  select(-c(X))
+
+boost_feature_importance %>%
+  kable(format = "latex", row.names = NA, 
+        booktabs = TRUE, digits = 2, 
+        col.names = c("Variable", "Relative Influence"),
+        caption = "Boosting Important Variables") %>%
+  kable_styling(position = "center", latex_options = "HOLD_position")
 ```
 
 

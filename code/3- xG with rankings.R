@@ -29,9 +29,24 @@ clean_shot_data$goal <- as.logical(clean_shot_data$goal) %>%
   as.numeric()
 
 names(clean_shot_data)
-clean_shot_data$shot_taker_id
+# clean_shot_data$shot_taker_id
 
-############################## Feature Engineering #############################
+##################### Feature Engineering w/o Teammate Data ####################
+clean_shot_data <- shot_data %>%
+  select(-c(frame, time, is_orange, shot_taker_id,
+            opp_1_id, opp_2_id)) %>%
+  select(-contains("throttle"), -contains("name"), -contains("_dodge"),
+         -contains("steer"), -contains("ping"), -contains("cam"),
+         -contains("handbrake"), -contains("boost"),
+         -contains("jump")) %>%
+  add_column(shot_taker_boost_active = shot_data$shot_taker_boost_active) %>%
+  na.omit()
+
+clean_shot_data$goal <- as.logical(clean_shot_data$goal) %>%
+  as.numeric()
+
+# write.csv(head(clean_shot_data), file = "results/clean_shot_data.csv")
+
 #log distance
 clean_shot_data$logDistanceToGoal <- log(clean_shot_data$distanceToGoal)
 
@@ -56,7 +71,8 @@ clean_shot_data <- clean_shot_data %>%
   select(-contains("team_mate_")) %>%
   na.omit()
 
-#### arc cos angle with opponents
+############## arc cos angle with opponents ##############
+
 # create vectors between ball and opposition players
 clean_shot_data <- clean_shot_data %>%
   add_column(vector_opp_1_x = (.$ball_pos_x - .$opp_1_pos_x))
@@ -133,8 +149,9 @@ train_samples1 = sample(1:n1, round(0.8*n1))
 shot_train = clean_shot_data[train_samples1,]
 shot_test = clean_shot_data[-train_samples1,]
 
-glm_fit = glm(goal ~ . - idx - distanceToGoal, 
-              family = "binomial" (link = "logit"), 
+names(shot_train)
+
+glm_fit = glm(goal ~ . - idx, family = "binomial" (link = "logit"), 
               data = shot_train)
 summary(glm_fit)
 
@@ -147,19 +164,163 @@ glm_misclass
 # log loss
 library(MLmetrics)
 glm_losloss_fe <- LogLoss(y_pred = glm_pred, y_true = shot_test$goal)
+glm_losloss_fe
 
 # ROC curve
-pred_glm <- prediction(glm_pred, shot_test$goal)
-perf_glm <- performance(pred_glm, "tpr", "fpr")
-plot(perf_glm)
+# pred_glm <- prediction(glm_pred, shot_test$goal)
+# perf_glm <- performance(pred_glm, "tpr", "fpr")
+# plot(perf_glm)
 
 # apply predictions to full dataset
 predictions = predict(glm_fit, type = "response", newdata = clean_shot_data)
 
-data_with_xg = cbind(clean_shot_data, predictions) %>%
+data_with_glm_xg = cbind(clean_shot_data, predictions) %>%
   rename(xg = predictions)
 
-#################################### xgboost ################################### 
+#################################### Ridge #####################################
+library(glmnetUtils)                              # to run ridge and lasso
+source("code/functions/plot_glmnet.R") 
+
+# run ridge regression
+ridge_fit = cv.glmnet(goal ~ . -idx,   
+                      alpha = 0,                 
+                      nfolds = 10,               
+                      data = shot_train, 
+                      show_col_types = FALSE)
+plot(ridge_fit)
+coef(ridge_fit, s = "lambda.1se") %>% head()
+coef(ridge_fit, s = "lambda.min") %>% head()
+save(ridge_fit, file = "results/ridge_fit.Rda")
+
+#################################### Lasso #####################################
+lasso_fit = cv.glmnet(goal ~ . -idx,   
+                      alpha = 1,                 
+                      nfolds = 10,               
+                      data = shot_train,
+                      show_col_types = FALSE)
+save(lasso_fit, file = "results/lasso_fit.Rda")
+
+p = plot_glmnet(lasso_fit, shot_train, features_to_plot = 6, 
+                lambda = lasso_fit$lambda.min)
+p
+ggsave(filename = "results/lasso-trace-plot.png", 
+       plot = p, 
+       device = "png", 
+       width = 7, 
+       height = 5)
+
+# extract features selected by lasso and their coefficients
+beta_hat_std = extract_std_coefs(lasso_fit, shot_train, 
+                                 lambda = lasso_fit$lambda.min)
+beta_hat_std %>%
+  filter(coefficient != 0) %>%
+  arrange(desc(abs(coefficient))) %>% 
+  write_tsv("results/lasso-features-table.tsv")
+
+##################### Feature Engineering w/ Teammate Data #####################
+clean_shot_data <- shot_data %>%
+  select(-c(frame, time, is_orange, shot_taker_id,
+            opp_1_id, opp_2_id)) %>%
+  select(-contains("throttle"), -contains("name"), -contains("_dodge"),
+         -contains("steer"), -contains("ping"), -contains("cam"),
+         -contains("handbrake"), -contains("boost"),
+         -contains("jump")) %>%
+  add_column(shot_taker_boost_active = shot_data$shot_taker_boost_active) %>%
+  na.omit()
+
+clean_shot_data$goal <- as.logical(clean_shot_data$goal) %>%
+  as.numeric()
+
+# write.csv(head(clean_shot_data), file = "results/clean_shot_data.csv")
+
+#log distance
+clean_shot_data$logDistanceToGoal <- log(clean_shot_data$distanceToGoal)
+
+#distance between opponents
+clean_shot_data <- clean_shot_data %>%
+  add_column(distanceToOpp1 = ((.$shot_taker_pos_x - .$opp_1_pos_x)^2 
+                               + (.$shot_taker_pos_y - .$opp_1_pos_y)^2 
+                               + (.$shot_taker_pos_z - .$opp_1_pos_z)^2) ^(1/2))
+
+clean_shot_data <- clean_shot_data %>%
+  add_column(distanceToOpp2 = ((.$shot_taker_pos_x - .$opp_2_pos_x)^2 
+                               + (.$shot_taker_pos_y - .$opp_2_pos_y)^2 
+                               + (.$shot_taker_pos_z - .$opp_2_pos_z)^2) ^(1/2))
+# distance to teammate
+clean_shot_data <- clean_shot_data %>%
+  add_column(distanceToTeam = ((.$shot_taker_pos_x - .$team_mate_pos_x)^2
+                               + (.$shot_taker_pos_y - .$team_mate_pos_y)^2
+                               + (.$shot_taker_pos_z - .$team_mate_pos_z)^2) ^(1/2))
+
+# remove team_mate columns because it causes bugs
+# clean_shot_data <- clean_shot_data %>%
+  # select(-contains("team_mate_")) %>%
+  # na.omit()
+
+############## arc cos angle with opponents ##############
+
+# create vectors between ball and opposition players
+clean_shot_data <- clean_shot_data %>%
+  add_column(vector_opp_1_x = (.$ball_pos_x - .$opp_1_pos_x))
+
+clean_shot_data <- clean_shot_data %>%
+  add_column(vector_opp_1_y = (.$ball_pos_y - .$opp_1_pos_y))
+
+clean_shot_data <- clean_shot_data %>%
+  add_column(vector_opp_1_z = (.$ball_pos_z - .$opp_1_pos_z))
+
+clean_shot_data <- clean_shot_data %>%
+  add_column(vector_opp_2_x = (.$ball_pos_x - .$opp_2_pos_x))
+
+clean_shot_data <- clean_shot_data %>%
+  add_column(vector_opp_2_y = (.$ball_pos_y - .$opp_2_pos_y))
+
+clean_shot_data <- clean_shot_data %>%
+  add_column(vector_opp_2_z = (.$ball_pos_z - .$opp_2_pos_z))
+
+# calculate dot products of position and velocity vectors 
+clean_shot_data <- clean_shot_data %>%
+  add_column(dotproduct_opp_1 = ((.$vector_opp_1_x * .$ball_vel_x)
+                                 + (.$vector_opp_1_y * .$ball_vel_y)
+                                 + (.$vector_opp_1_z * .$ball_vel_z)))
+
+clean_shot_data <- clean_shot_data %>%
+  add_column(dotproduct_opp_2 = ((.$vector_opp_2_x * .$ball_vel_x)
+                                 + (.$vector_opp_2_y * .$ball_vel_y)
+                                 + (.$vector_opp_2_z * .$ball_vel_z)))
+
+# calculate magnitudes of the vectors
+clean_shot_data <- clean_shot_data %>%
+  add_column(magnitude_vel = ((.$ball_vel_x * .$ball_vel_x)^2
+                              + (.$ball_vel_y * .$ball_vel_y)^2
+                              + (.$ball_vel_z * .$ball_vel_z)^2) ^(1/2))
+
+clean_shot_data <- clean_shot_data %>%
+  add_column(magnitude_opp_1 = ((.$vector_opp_1_x * .$vector_opp_1_x)^2
+                                + (.$vector_opp_1_y * .$vector_opp_1_y)^2
+                                + (.$vector_opp_1_z * .$vector_opp_1_z)^2) ^(1/2))
+
+clean_shot_data <- clean_shot_data %>%
+  add_column(magnitude_opp_2 = ((.$vector_opp_2_x * .$vector_opp_2_x)^2
+                                + (.$vector_opp_2_y * .$vector_opp_2_y)^2
+                                + (.$vector_opp_2_z * .$vector_opp_2_z)^2) ^(1/2))
+
+# actual cos theta
+clean_shot_data <- clean_shot_data %>%
+  add_column(cos_theta_opp_1 = .$dotproduct_opp_1 / (.$magnitude_opp_1 * .$magnitude_vel))
+
+clean_shot_data <- clean_shot_data %>%
+  add_column(cos_theta_opp_2 = .$dotproduct_opp_2 / (.$magnitude_opp_2 * .$magnitude_vel))
+
+
+# remove the helper columns (vector, dotproduct, magnitude)
+clean_shot_data <- clean_shot_data %>%
+  select(-contains("vector"), -contains("dotproduct"), -contains("magnitude")) %>%
+  na.omit()
+
+head(clean_shot_data, 5)
+
+#################################### xgBoost ################################### 
 # for data, rerun feature engineering code, except for removal of teammate data
 xgdata <- clean_shot_data %>%
   select(-c("team_mate_id","shot_taker_boost_active", "idx"))
@@ -178,9 +339,13 @@ gbm_fit = gbm(goal ~ . -shot_taker_id,
               shrinkage = 0.1,
               cv.folds = 5,
               data = shot_train_xg)
-summary(gbm_fit, n.trees = 200, plotit = FALSE)
+boost_feature_importance <- summary(gbm_fit, n.trees = 200, plotit = FALSE) %>%
+  as_tibble() %>%
+  head(10)
 
 save(gbm_fit, file = "gbm_fit.Rda")
+write.csv(boost_feature_importance, 
+          file = "results/boost_feature_importance.csv")
 
 # partial dependence plots
 plot(gbm_fit, i.var = "distanceToGoal", n.trees = 200, type = "response")
