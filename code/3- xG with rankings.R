@@ -151,7 +151,8 @@ shot_test = clean_shot_data[-train_samples1,]
 
 names(shot_train)
 
-glm_fit = glm(goal ~ . - idx, family = "binomial" (link = "logit"), 
+glm_fit = glm(goal ~ . - idx - distanceToGoal, 
+              family = "binomial" (link = "logit"), 
               data = shot_train)
 summary(glm_fit)
 
@@ -182,7 +183,7 @@ library(glmnetUtils)                              # to run ridge and lasso
 source("code/functions/plot_glmnet.R") 
 
 # run ridge regression
-ridge_fit = cv.glmnet(goal ~ . -idx,   
+ridge_fit = cv.glmnet(goal ~ . -idx - distanceToGoal,   
                       alpha = 0,                 
                       nfolds = 10,               
                       data = shot_train, 
@@ -207,7 +208,7 @@ ridge_losloss_fe <- LogLoss(y_pred = ridge_predictions, y_true = shot_test$goal)
 ridge_losloss_fe
 
 #################################### Lasso #####################################
-lasso_fit = cv.glmnet(goal ~ . -idx,   
+lasso_fit = cv.glmnet(goal ~ . -idx - distanceToGoal,   
                       alpha = 1,                 
                       nfolds = 10,               
                       data = shot_train,
@@ -437,6 +438,8 @@ xg_model_eval <- tribble(
   "xgBoost, FE, with teammate data", gbm_logloss,
   "Naive classifier", naive_logloss
 ) ## xgboost is best
+
+write.csv(xg_model_eval, file = "results/xg_model_eval.csv")
 
 ################################# Excess Goals #################################
 # using xgboost model with teammate data and engineered features as final model
