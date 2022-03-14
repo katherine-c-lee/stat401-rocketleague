@@ -151,25 +151,55 @@ shot_test = clean_shot_data[-train_samples1,]
 
 names(shot_train)
 
-glm_fit = glm(goal ~ . - idx, family = "binomial" (link = "logit"), 
+glm_fit = glm(goal ~ . - idx - distanceToGoal, 
+              family = "binomial" (link = "logit"), 
               data = shot_train)
 summary(glm_fit)
 
-# misclassification rate
+# probability predictions
 glm_pred = predict(glm_fit, type = "response", newdata = shot_test)
-glm_pred_class <- ifelse(glm_pred > 0.5, 1, 0)
-glm_misclass = mean(glm_pred_class != shot_test$goal)
-glm_misclass
 
 # log loss
 library(MLmetrics)
 glm_losloss_fe <- LogLoss(y_pred = glm_pred, y_true = shot_test$goal)
 glm_losloss_fe
 
+# apply test probabilities to test dataset
+testdata_logreg_pred = cbind(shot_test, glm_pred) %>%
+  rename(xg = glm_pred) %>%
+  as_tibble()
+
 # ROC curve
-# pred_glm <- prediction(glm_pred, shot_test$goal)
-# perf_glm <- performance(pred_glm, "tpr", "fpr")
-# plot(perf_glm)
+roc_data = roc(testdata_logreg_pred %>% pull(goal), 
+               testdata_logreg_pred %>% pull(xg)) 
+fpr_tpr <- tibble(FPR = 1-roc_data$specificities,
+                  TPR = roc_data$sensitivities)
+fpr_tpr %>%
+  ggplot(aes(x = FPR, y = TPR)) + 
+  geom_line() + 
+  geom_abline(slope = 1, linetype = "dashed") +
+  theme_bw()
+
+# print the AUC
+roc_data$auc
+
+gmean = sqrt(fpr_tpr$TPR * (1-fpr_tpr$FPR))
+gmean_max = which.max(gmean)
+opt_threshold = roc_data$thresholds[gmean_max]
+opt_threshold
+
+# misclassification rate with optimal threshold
+glm_pred_class <- ifelse(glm_pred > opt_threshold, 1, 0)
+glm_misclass = mean(glm_pred_class != shot_test$goal)
+glm_misclass
+accuracy = 1-glm_misclass
+accuracy
+
+# apply test probabilities to test dataset
+cbind(shot_test, glm_pred_class) %>%
+  as_tibble() %>%
+  select(glm_pred_class, goal) %>%
+  table()
 
 # apply predictions to full dataset
 predictions = predict(glm_fit, type = "response", newdata = clean_shot_data)
@@ -182,7 +212,7 @@ library(glmnetUtils)                              # to run ridge and lasso
 source("code/functions/plot_glmnet.R") 
 
 # run ridge regression
-ridge_fit = cv.glmnet(goal ~ . -idx,   
+ridge_fit = cv.glmnet(goal ~ . -idx - distanceToGoal,   
                       alpha = 0,                 
                       nfolds = 10,               
                       data = shot_train, 
@@ -207,7 +237,7 @@ ridge_losloss_fe <- LogLoss(y_pred = ridge_predictions, y_true = shot_test$goal)
 ridge_losloss_fe
 
 #################################### Lasso #####################################
-lasso_fit = cv.glmnet(goal ~ . -idx,   
+lasso_fit = cv.glmnet(goal ~ . -idx - distanceToGoal,   
                       alpha = 1,                 
                       nfolds = 10,               
                       data = shot_train,
@@ -429,7 +459,7 @@ names(pred_naive)
 naive_logloss <- LogLoss(y_pred = avg_goals_repped, y_true = shot_test_xg$goal)
 
 xg_model_eval <- tribble(
-  ~Model, ~"Log Loss", 
+  ~Model, ~"Log Loss",
   #--|--|----
   "Logistic Regression, FE, no teammate data", glm_losloss_fe,
   "Ridge Regression, FE, no teammate data", ridge_losloss_fe,
@@ -438,9 +468,12 @@ xg_model_eval <- tribble(
   "Naive classifier", naive_logloss
 ) ## xgboost is best
 
+write.csv(xg_model_eval, file = "results/xg_model_eval.csv")
+
 ################################# Excess Goals #################################
 # using xgboost model with teammate data and engineered features as final model
 names(data_with_boost_xg)
+write.csv(data_with_boost_xg, file = "data_with_boost_xg.csv")
 
 # sum all xgs for expected goals
 total_xg <- data_with_boost_xg %>%
@@ -461,10 +494,11 @@ aggregate <- total_xg %>%
   mutate(outperformance = total_goals/(sum_xg)) %>%
   mutate(actual_goal_rate = total_goals/count) %>%
   arrange(desc(outperformance)) %>%
-  filter(count>50)
+  filter(count>20)
 
 # top 5 players in terms of excess goals
 head(aggregate, 5)
+aggregate
 
 # top 5 players in terms of total shots taken
 aggregate %>%
@@ -473,7 +507,7 @@ aggregate %>%
 
 ## this result could suggest that the game is really more based on luck and not really skill?
 
-# top average xg players
+# top average xg players ### FIX CODE HERE
 aggregate %>%
   arrange(desc(sum_xg)) %>%
   head(5)
