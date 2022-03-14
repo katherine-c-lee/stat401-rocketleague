@@ -1,6 +1,6 @@
-"","Model","Log Loss"
-"1","Logistic Regression, FE, no teammate data",0.523682561875626
-"2","Ridge Regression, FE, no teammate data",0.591409270200929
-"3","Lasso Regression, FE, no teammate data",0.623663094230578
-"4","xgBoost, FE, with teammate data",0.463452478857646
-"5","Naive classifier",0.649957652730467
+"","Model","Log Loss","Misclassification Rate"
+"1","Logistic Regression, FE, no teammate data",0.523682561875626,0.285628793707788
+"2","Ridge Regression, FE, no teammate data",0.591409270200929,0.264084808070445
+"3","Lasso Regression, FE, no teammate data",0.623663094230578,0.263913824057451
+"4","xgBoost, FE, with teammate data",0.463452478857646,0.223732581003676
+"5","Naive classifier",0.649957652730467,0.348950540760056

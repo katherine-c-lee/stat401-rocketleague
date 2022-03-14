@@ -1,7 +1,7 @@
 ---
 title: 'Rocket League Analysis'
 author: 'Katie Lee, Hugo Leo, Linda Wang'
-date: 'March 4, 2022'
+date: 'March 14, 2022'
 output:
   bookdown::pdf_document2:
     number_sections: yes
@@ -15,6 +15,7 @@ options(scipen = 0, digits = 3)  # controls number of significant digits printed
 library(tidyverse)
 library(kableExtra)
 ```
+
 
 ```{r coverpage, out.width = "60%", fig.align='center', echo = FALSE, fig.pos = "H"}
 knitr::include_graphics("../results/coverpage.jpeg")
@@ -42,13 +43,28 @@ For our analysis, we built an expected goals (xG) model using location data to p
 - because we are interested in expected goals and evaluating shot ability, we filtered for shot = true only
 
 # Exploratory Data Analysis
+## Field Set Up
 As a first step, we explored the location data to get a sense of the placement of the goal. Based on Figure \@ref(fig:xyfield), it seems that the goal post is located at $(0,5000,0)$.
 ```{r xyfield, out.width = "100%", fig.cap = "X-Y Field and Shot Outcome", fig.align='center', echo = FALSE, fig.pos = "H"}
 knitr::include_graphics("../results/xy_field.png")
 ```
 
+## Feature-Feature and Feature-Response Correlation
+Next, we explored high-level relationships and correlations of the predictor variables with other predictor variables. We first looked at correlations between a few school-specific features, as shown in Figure \@ref(fig:position-corrplot). We observe a positive correlation between the $(x,y,z)$ positions of the ball and the shot taker, as well as between the position of the shot taker, the teammate, and the opponents.
+```{r position-corrplot, out.width = "60%", fig.cap = "Position Features Correlation Plot", fig.align='center', echo = FALSE, fig.pos = "H"}
+knitr::include_graphics("../results/position_data_corrplot.png")
+```
+
+In addition, we looked relationships of some predictor variables with the response variable. Specifically, we examined how distances to the goal, to the shot taker's teammate, and to the two opponents were associated with the goal outcome. As shown in Figure \@ref(fig:box-distance), the log of the distance to the goal has a noticable difference, with shorter distances resulting in more goals. The shot taker's distance to the teammate and the two opponents have less of a difference between those shots that resulted in goals and those that did not.
+```{r box-distance, out.width = "60%", fig.cap = "Position Features Correlation Plot", fig.align='center', echo = FALSE, fig.pos = "H"}
+knitr::include_graphics("../results/box-distances.png")
+```
+
+
+\newpage
+
 # Expected Goals Models
-We built two expected goals models using logistic regression and boosted trees. Because of the nature of the dataset, we have data about the ball's trajectory, so we can easily compute whether a shot will result in a goal or not. However, for our model, we used position, velocity, angular velocity, and rotation of the shot taker, defender, and teammate to build our model. To train our model, we predicted the outcome of a shot (goal or no goal) for a particular frame. This implies that our xG estimates are for a set of positions of the shot taker, teammate, and defenders. 
+We built four expected goals models using logistic regression, penalized regressions (ridge and lasso), and boosted trees. We included two penalized regressions to account for the high dimensionality of the dataset and for variance reduction purposes. Because of the nature of the dataset, we have data about the ball's trajectory, so we can easily compute whether a shot will result in a goal or not. However, for our model, we used position, velocity, angular velocity, and rotation of the shot taker, defender, and teammate to build our model. To train our model, we predicted the outcome of a shot (goal or no goal) for a particular frame. This implies that our xG estimates are for a set of positions of the shot taker, teammate, and defenders. 
 
 ## Analysis Goals
 - how is xg used in soccer
@@ -57,7 +73,14 @@ We built two expected goals models using logistic regression and boosted trees. 
 ## Feature Engineering
 We used feature engineering to transform the raw data into features that can be used in supervised learning. 
 
-## Logistic Regression
+## Models
+We ran 4 models to predict expected goals: 1) a simple logistic regression with engineered features, 2) a ridge logistic regression, 3) a lasso logistic regression, and 4) an xgBoost classification model. The response variable was `goal`, which is represented in the dataset by a binary variable, and the explanatory variables include various location and positioning features. 
+
+### Logistic Regression
+As a starting point, we built a simple logistic regression with 59 explanatory variables. We removed teammate positioning and car features as including the features resulted in model non-convergence. We assume that this is due to the highly collinear nature of the dataset. Intuitively, However, when considering the normality assumptions, we note that our response distribution, even after applying a square root transformation, is not normally distributed. Moreover, as demonstrated in our correlation plots, many of the features are correlated. Extended results are reported in the Appendix \@ref(appendix2) (Figure \@ref(fig:olsSummary)). The R-squared of the regression was 0.144, signifying a rather weak relationship between the model and the response. We believe that severe skew in our data and multicollinearity between our predictor variables decreased the accuracy of our model.
+
+However, there were a number of significant variables, including: the urbanization of the school location, a variety of quantity teacher metrics, the amounts of threats each school was reported with, race demographic data, and almost all economic data (unemployment, poverty, weekly wage, etc.).
+
 - discuss how we excluded teammate data? maybe because MLE doesn't converge because of high correlation across variables and the goals variable???
 ```{r glm-fit}
 load("../results/glm_fit.rda")
@@ -92,11 +115,9 @@ read.csv("../results/xg_model_eval.csv") %>%
   as_tibble() %>%
   kable(format = "latex", row.names = NA, 
         booktabs = TRUE, digits = 2, 
-        col.names = c("Model", "Log Loss"),
+        col.names = c("Model", "Log Loss", "Misclassification Rate"),
         caption = "Model Evaluation") %>%
   kable_styling(position = "center", latex_options = "HOLD_position")
-
-
 ```
 
 

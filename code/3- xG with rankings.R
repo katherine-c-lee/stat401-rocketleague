@@ -150,6 +150,8 @@ shot_train = clean_shot_data[train_samples1,]
 shot_test = clean_shot_data[-train_samples1,]
 
 names(shot_train)
+dim(shot_train)
+dim(shot_test)
 
 glm_fit = glm(goal ~ . - idx - distanceToGoal, 
               family = "binomial" (link = "logit"), 
@@ -389,10 +391,8 @@ xgdata <- clean_shot_data %>%
 
 # train / test split
 set.seed(5)
-n2 = nrow(xgdata)
-train_samples2 = sample(1:n2, round(0.8*n2))
-shot_train_xg = xgdata[train_samples2,]
-shot_test_xg = xgdata[-train_samples2,]
+shot_train_xg = xgdata[train_samples1,]
+shot_test_xg = xgdata[-train_samples1,]
 
 gbm_fit = gbm(goal ~ . -shot_taker_id,
               distribution = "bernoulli",
@@ -405,12 +405,12 @@ boost_feature_importance <- summary(gbm_fit, n.trees = 200, plotit = FALSE) %>%
   as_tibble() %>%
   head(10)
 
+write.csv(boost_feature_importance, 
+          file = "results/boost_feature_importance.csv")
+
 save(gbm_fit, file = "gbm_fit.Rda")
 load("results/gbm_fit.Rda")
 summary(gbm_fit)
-
-write.csv(boost_feature_importance, 
-          file = "results/boost_feature_importance.csv")
 
 # partial dependence plots
 plot(gbm_fit, i.var = "distanceToGoal", n.trees = 200, type = "response")
@@ -459,13 +459,13 @@ names(pred_naive)
 naive_logloss <- LogLoss(y_pred = avg_goals_repped, y_true = shot_test_xg$goal)
 
 xg_model_eval <- tribble(
-  ~Model, ~"Log Loss",
+  ~Model, ~"Log Loss", ~"Misclassification Rate",
   #--|--|----
-  "Logistic Regression, FE, no teammate data", glm_losloss_fe,
-  "Ridge Regression, FE, no teammate data", ridge_losloss_fe,
-  "Lasso Regression, FE, no teammate data", lasso_losloss_fe,
-  "xgBoost, FE, with teammate data", gbm_logloss,
-  "Naive classifier", naive_logloss
+  "Logistic Regression, FE, no teammate data", glm_losloss_fe, glm_misclass,
+  "Ridge Regression, FE, no teammate data", ridge_losloss_fe, ridge_misclass,
+  "Lasso Regression, FE, no teammate data", lasso_losloss_fe, lasso_misclass,
+  "xgBoost, FE, with teammate data", gbm_logloss, gbm_misclass, 
+  "Naive classifier", naive_logloss, avg_goals
 ) ## xgboost is best
 
 write.csv(xg_model_eval, file = "results/xg_model_eval.csv")
@@ -473,7 +473,7 @@ write.csv(xg_model_eval, file = "results/xg_model_eval.csv")
 ################################# Excess Goals #################################
 # using xgboost model with teammate data and engineered features as final model
 names(data_with_boost_xg)
-write.csv(data_with_boost_xg, file = "data_with_boost_xg.csv")
+# write.csv(data_with_boost_xg, file = "data_with_boost_xg.csv")
 
 # sum all xgs for expected goals
 total_xg <- data_with_boost_xg %>%
@@ -495,6 +495,8 @@ aggregate <- total_xg %>%
   mutate(actual_goal_rate = total_goals/count) %>%
   arrange(desc(outperformance)) %>%
   filter(count>20)
+
+# write.csv(aggregate, file = "aggregate.csv")
 
 # top 5 players in terms of excess goals
 head(aggregate, 5)
