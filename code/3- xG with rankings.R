@@ -264,6 +264,7 @@ beta_hat_std = extract_std_coefs(lasso_fit, shot_train,
 beta_hat_std %>%
   filter(coefficient != 0) %>%
   arrange(desc(abs(coefficient))) %>% 
+  head(10) %>%
   write_tsv("results/lasso-features-table.tsv")
 
 lasso_predictions = predict(lasso_fit, 
@@ -458,6 +459,16 @@ pred_naive <- cbind(shot_test_xg, avg_goals_repped)
 names(pred_naive)
 naive_logloss <- LogLoss(y_pred = avg_goals_repped, y_true = shot_test_xg$goal)
 
+xg_model_eval_reg <- tribble(
+  ~Model, ~"Log Loss", ~"Misclassification Rate",
+  #--|--|----
+  "Logistic Regression, FE, no teammate data", glm_losloss_fe, glm_misclass,
+  "Ridge Regression, FE, no teammate data", ridge_losloss_fe, ridge_misclass,
+  "Lasso Regression, FE, no teammate data", lasso_losloss_fe, lasso_misclass,
+) ## xgboost is best
+
+write.csv(xg_model_eval_reg, file = "results/xg_model_eval_reg.csv")
+
 xg_model_eval <- tribble(
   ~Model, ~"Log Loss", ~"Misclassification Rate",
   #--|--|----
@@ -470,54 +481,4 @@ xg_model_eval <- tribble(
 
 write.csv(xg_model_eval, file = "results/xg_model_eval.csv")
 
-################################# Excess Goals #################################
-# using xgboost model with teammate data and engineered features as final model
-names(data_with_boost_xg)
-# write.csv(data_with_boost_xg, file = "data_with_boost_xg.csv")
-
-# sum all xgs for expected goals
-total_xg <- data_with_boost_xg %>%
-  group_by(shot_taker_id) %>%
-  summarise(sum_xg = sum(xg))
-
-total_goals <- data_with_boost_xg %>%
-  group_by(shot_taker_id) %>%
-  summarise(total_goals = sum(goal))
-
-total_attempts <- data_with_boost_xg %>%
-  group_by(shot_taker_id) %>%
-  summarise(count = n())
-
-aggregate <- total_xg %>%
-  inner_join(total_goals, by = "shot_taker_id") %>%
-  inner_join(total_attempts, by = "shot_taker_id") %>%
-  mutate(outperformance = total_goals/(sum_xg)) %>%
-  mutate(actual_goal_rate = total_goals/count) %>%
-  arrange(desc(outperformance)) %>%
-  filter(count>20)
-
-# write.csv(aggregate, file = "aggregate.csv")
-
-# top 5 players in terms of excess goals
-head(aggregate, 5)
-aggregate
-
-# top 5 players in terms of total shots taken
-aggregate %>%
-  arrange(desc(count)) %>%
-  head(5)   ## there is some overlap b/w the top 5 players by shots taken and top 5 by excess goals
-
-## this result could suggest that the game is really more based on luck and not really skill?
-
-# top average xg players ### FIX CODE HERE
-aggregate %>%
-  arrange(desc(sum_xg)) %>%
-  head(5)
-
-## shot taker id 76561198124326808 seems to be good at positioning and takes lots of shots
-  
-# filter data for top players
-data_with_boost_xg %>%
-  as_tibble() %>%
-  filter(shot_taker_id == "76561198028093603")
 
