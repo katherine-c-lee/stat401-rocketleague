@@ -108,6 +108,23 @@ performer2_avgs <- data_with_boost_xg %>%
 (overall_avg_player-performer2_avgs)/top_performer_avgs
 ## ball vel x, ball rot x, shot taker rotation, team mate velocity x
 
+## check to see if the ang vel x of the ball holds for the third top outperformer
+outperformer3 <- aggregate[3,] %>%
+  pull(shot_taker_id)
+
+data_with_boost_xg %>%
+  filter(shot_taker_id == outperformer3) %>%
+  select_if(is.numeric) %>%
+  names()
+
+performer3_avgs <- data_with_boost_xg %>%
+  filter(shot_taker_id == outperformer3) %>%
+  select_if(is.numeric) %>%
+  colMeans()
+
+(overall_avg_player-performer3_avgs)/top_performer_avgs
+## shot taker y velocity
+
 
 ## player 76561198002542052 appears in top 5 average xg, and top 5 outperformance
 
