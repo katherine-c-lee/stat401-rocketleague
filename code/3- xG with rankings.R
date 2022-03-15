@@ -9,12 +9,21 @@ library(gbm)           # boosting
 library(RColorBrewer)
 library(ROCR)
 
-setwd("~/Dropbox (Penn)/__SPRING 2022/STAT401/stat401-rocketleague")
-game_data
-names(game_data)
-shot_data <- game_data %>%
-  filter(shot == TRUE)  %>%
-  select(-c(shot))
+######  Linda #########
+setwd('/Users/lindawang/Library/Mobile Documents/com~apple~CloudDocs/Linda Wang/Spring 2022 Classes/STAT 401/Final Project/stat401-rocketleague/code')
+
+# game_data <- read.csv(file = "data/clean/game_data.csv")
+shot_data <- read.csv(file = "data/clean/shot_data.csv")
+
+
+######  Katie  ########
+# setwd("~/Dropbox (Penn)/__SPRING 2022/STAT401/stat401-rocketleague")
+# game_data
+# names(game_data)
+# shot_data <- game_data %>%
+#   filter(shot == TRUE)  %>%
+#   select(-c(shot))
+#######################
 
 clean_shot_data <- shot_data %>%
   select(-c(frame, time, is_orange,
@@ -75,22 +84,22 @@ clean_shot_data <- clean_shot_data %>%
 
 # create vectors between ball and opposition players
 clean_shot_data <- clean_shot_data %>%
-  add_column(vector_opp_1_x = (.$ball_pos_x - .$opp_1_pos_x))
+  add_column(vector_opp_1_x = (.$opp_1_pos_x - .$ball_pos_x))
 
 clean_shot_data <- clean_shot_data %>%
-  add_column(vector_opp_1_y = (.$ball_pos_y - .$opp_1_pos_y))
+  add_column(vector_opp_1_y = (.$opp_1_pos_y - .$ball_pos_y))
 
 clean_shot_data <- clean_shot_data %>%
-  add_column(vector_opp_1_z = (.$ball_pos_z - .$opp_1_pos_z))
+  add_column(vector_opp_1_z = (.$opp_1_pos_z - .$ball_pos_z))
 
 clean_shot_data <- clean_shot_data %>%
-  add_column(vector_opp_2_x = (.$ball_pos_x - .$opp_2_pos_x))
+  add_column(vector_opp_2_x = (.$opp_2_pos_x - .$ball_pos_x))
 
 clean_shot_data <- clean_shot_data %>%
-  add_column(vector_opp_2_y = (.$ball_pos_y - .$opp_2_pos_y))
+  add_column(vector_opp_2_y = (.$opp_2_pos_y - .$ball_pos_y))
 
 clean_shot_data <- clean_shot_data %>%
-  add_column(vector_opp_2_z = (.$ball_pos_z - .$opp_2_pos_z))
+  add_column(vector_opp_2_z = (.$opp_2_pos_z - .$ball_pos_z))
 
 # calculate dot products of position and velocity vectors 
 clean_shot_data <- clean_shot_data %>%
@@ -320,26 +329,26 @@ clean_shot_data <- clean_shot_data %>%
   # select(-contains("team_mate_")) %>%
   # na.omit()
 
-############## arc cos angle with opponents ##############
+##############  cos angle with opponents ##############
 
 # create vectors between ball and opposition players
 clean_shot_data <- clean_shot_data %>%
-  add_column(vector_opp_1_x = (.$ball_pos_x - .$opp_1_pos_x))
+  add_column(vector_opp_1_x = (.$opp_1_pos_x - .$ball_pos_x))
 
 clean_shot_data <- clean_shot_data %>%
-  add_column(vector_opp_1_y = (.$ball_pos_y - .$opp_1_pos_y))
+  add_column(vector_opp_1_y = (.$opp_1_pos_y - .$ball_pos_y))
 
 clean_shot_data <- clean_shot_data %>%
-  add_column(vector_opp_1_z = (.$ball_pos_z - .$opp_1_pos_z))
+  add_column(vector_opp_1_z = (.$opp_1_pos_z - .$ball_pos_z))
 
 clean_shot_data <- clean_shot_data %>%
-  add_column(vector_opp_2_x = (.$ball_pos_x - .$opp_2_pos_x))
+  add_column(vector_opp_2_x = (.$opp_2_pos_x - .$ball_pos_x))
 
 clean_shot_data <- clean_shot_data %>%
-  add_column(vector_opp_2_y = (.$ball_pos_y - .$opp_2_pos_y))
+  add_column(vector_opp_2_y = (.$opp_2_pos_y - .$ball_pos_y))
 
 clean_shot_data <- clean_shot_data %>%
-  add_column(vector_opp_2_z = (.$ball_pos_z - .$opp_2_pos_z))
+  add_column(vector_opp_2_z = (.$opp_2_pos_z - .$ball_pos_z))
 
 # calculate dot products of position and velocity vectors 
 clean_shot_data <- clean_shot_data %>%
@@ -413,7 +422,7 @@ save(gbm_fit, file = "gbm_fit.Rda")
 load("results/gbm_fit.Rda")
 summary(gbm_fit)
 
-# partial dependence plots
+# partial dependence plots vKatie
 plot(gbm_fit, i.var = "distanceToGoal", n.trees = 200, type = "response")
 plot(gbm_fit, i.var = "cos_theta_opp_1", n.trees = 200, type = "response")
 plot(gbm_fit, i.var = "cos_theta_opp_2", n.trees = 200, type = "response")
