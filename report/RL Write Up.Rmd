@@ -77,24 +77,45 @@ We used feature engineering to transform the raw data into features that can be 
 We ran 4 models to predict expected goals: 1) a simple logistic regression with engineered features, 2) a ridge logistic regression, 3) a lasso logistic regression, and 4) an xgBoost classification model. The response variable was `goal`, which is represented in the dataset by a binary variable, and the explanatory variables include various location and positioning features. 
 
 ### Logistic Regression
-As a starting point, we built a simple logistic regression with 59 explanatory variables. We removed teammate positioning and car features as including the features resulted in model non-convergence. We assume that this is due to the highly collinear nature of the dataset. Intuitively, However, when considering the normality assumptions, we note that our response distribution, even after applying a square root transformation, is not normally distributed. Moreover, as demonstrated in our correlation plots, many of the features are correlated. Extended results are reported in the Appendix \@ref(appendix2) (Figure \@ref(fig:olsSummary)). The R-squared of the regression was 0.144, signifying a rather weak relationship between the model and the response. We believe that severe skew in our data and multicollinearity between our predictor variables decreased the accuracy of our model.
+As a starting point, we built a simple logistic regression with 59 explanatory variables. We removed teammate positioning and car features as including the teammate features resulted in model non-convergence. While we are unsure why including teammate-specific data leads to non-convergence, we assume that this is partially attributable to the collinearity in the dataset. As displayed in the correlation plot (Figure \@ref(fig: position-corrplot)), there are correlations between the ball position, the shot taker position, and the teammate position. Extended results are reported in the Appendix. 
 
-However, there were a number of significant variables, including: the urbanization of the school location, a variety of quantity teacher metrics, the amounts of threats each school was reported with, race demographic data, and almost all economic data (unemployment, poverty, weekly wage, etc.).
+However, there were a number of significant variables, including: the $y$ and $z$ coordinates of the ball position, the ball velocity, the shot taker location, the opponent's velocity, the distance between the shot taker and the two opponents, and the angle between the shot taker and the goal.
 
-- discuss how we excluded teammate data? maybe because MLE doesn't converge because of high correlation across variables and the goals variable???
-```{r glm-fit}
-load("../results/glm_fit.rda")
-summary(glm_fit)
+### Penalized Regressions
+Despite identifying significant variables from the logistic regression, the method utilized 59 explanatory variables (with high intercorrelations), which could lead to a cost in variance, and thus inaccurate predictions. To combat these issues, we built and evaluated shrinkage models, namely ridge regression and lasso regression, with the goal of fitting a more parsimonious and interpretable model. Specifically, ridge regression is more stable when handling correlated features, as it "splits the credit" among correlated features, and lasso regression penalizes many features to 0, contributing to increased interpretability. For both penalized regression methods, we ran a 10-fold cross validation to optimize the choice of regularization parameters ($\lambda$). 
+
+The lasso regression trace plot is shown in Figure \@ref(fig:lasso-trace-plot) and the selected features and respective coefficients are displayed in Table \@ref(tab:lasso-coefficients). We applied the one standard error rule to select the optimal $\lambda$ value, and we notice that the lasso regression selects around 29 variables, including various ball position features, log of the shot taker's distance to the goal, the opponents' positions, and the angle between the shot taker and the goal.
+```{r lasso-trace-plot, out.width = "80%", fig.cap = "Lasso Regression Trace Plot", fig.align='center', echo = FALSE, fig.pos = "H"}
+knitr::include_graphics("../results/lasso-trace-plot.png")
 ```
-## Penalized Regressions
-```{r ridgecv, out.width = "80%", fig.cap = "Cross Validation for Ridge Regression", fig.align='center', echo = FALSE, fig.pos = "H"}
-# knitr::include_graphics("../results/ridge-cv-plot.png")
+
+```{r lasso-coefficients, message = FALSE, echo = FALSE}
+read_tsv("../results/lasso-features-table.tsv") %>%
+  kable(format = "latex", row.names = NA, 
+        booktabs = TRUE, digits = 2, 
+        col.names = c("Feature", "Coefficient"),
+        caption = "Standardized coefficients for features in the lasso 
+        model based on the one-standard-error rule.") %>%
+  kable_styling(position = "center", latex_options = "HOLD_position")
 ```
-```{r lassocv, out.width = "80%", fig.cap = "Cross Validation for Lasso Regression", fig.align='center', echo = FALSE, fig.pos = "H"}
-knitr::include_graphics("../results/lasso-cv-plot.png")
+
+Following in Table \@ref(tab:regression-eval) are the results for regression-based methods:
+
+```{r regression-eval, message = FALSE, echo = FALSE}
+read_csv("../results/xg_model_eval_reg.csv") %>%
+  select(-c("...1")) %>%
+  kable(format = "latex", row.names = NA, 
+        booktabs = TRUE, digits = 2, 
+        caption = "Regression Methods Summary") %>%
+  kable_styling(position = "center", latex_options = "HOLD_position")
 ```
-## XGBoost
-```{r}
+
+### XGBoost
+We also implemented a gradient boosting model, which is a method of aggregating multiple decision trees to improve prediction performance over a traditional decision tree. Boosting grows shallow decision trees sequentially, by considering a low-complexity weak learner (a shallow decision tree) and boosting the performance of the weak learning by applying an iterative method. For our xgBoost model, we used 200 trees, an interaction depth of 3, and a shrinkage of 0.1 due to computing limitations. 
+
+With the given boosting model, we judged variable importance by comparing purity-based importance. The ranking of variables based on purity-based importance is given in Table \@ref(tab:boosting-coefs). Similar to the regression-based method, the shot taker's distance to the goal, the angle between the shot taker and the goal, and various ball position and velocity features rank high in terms of variable importance.
+
+```{r boosting-coefs, echo = FALSE}
 load("../results/gbm_fit.Rda")
 boost_feature_importance <- read.csv("../results/boost_feature_importance.csv") %>%
   as_tibble() %>%
@@ -109,7 +130,8 @@ boost_feature_importance %>%
 ```
 
 ## Model Evaluation
-```{r, echo=FALSE}
+The final model evaluation summary is given in Table \@ref(tab:final-eval). Based on the evaluation statistics, the xgBoost model yields the lowest log loss and lowest misclassification rate, so we select the xgBoost model as our final model to be used in our excess goals analysis.
+```{r final-eval, echo=FALSE}
 read.csv("../results/xg_model_eval.csv") %>%
   select(-c(X)) %>%
   as_tibble() %>%
@@ -124,8 +146,29 @@ read.csv("../results/xg_model_eval.csv") %>%
 # Excess Goals
 To extent our Expected Goals model, we measured players' excess goals, or outperformance. Outperformance is given by dividing total goals scored divided by the sum of the player's expected goal probabilities. An outperformance ratio above one suggests the player is a "good" player in the sense that they are a good shooter and are able to make more goals than what is expected based on their location, their opponent's location, and various ball features. 
 
+For our analysis of excess goals and player outperformance, we selected for shot takers that appeared more than 20 data observations. We believe including shot takers that appeared less frequently will skew the analysis. Because we are interested in understanding what makes a shot taker successful, we looked at the sum of each players' expected goals over all shots in the dataset, the total number of goals actually scored, the number of goal attempts, outperformance, and the actual success rate. A subsample of the aggregated metrics dataset is shown in Table \@ref(tab:agg-stats).
+
+```{r agg-stats, echo = FALSE}
+read.csv("../results/aggregate.csv") %>%
+  select(-c(X)) %>%
+  head(5) %>%
+  as_tibble() %>%
+  kable(format = "latex", row.names = NA, 
+        booktabs = TRUE, digits = 2, 
+        caption = "Relevant Statistics for Outperformance Analysis") %>%
+  kable_styling(position = "center", latex_options = "HOLD_position")
+```
+
+When considering the types of player and shot taker style in an eSports setting, one idea to explore is whether player success is more dependent on more shot opportunities (taking more shots) or more dependent on positioning.
+
+Some insights:
+1. the shot taker that is "best" in terms of outperformance stands out from the average shot from 1) ball ang vel x (smaller angular vel) and 2) ball hit team no (positive)
+2. generally it seems like top players (based on top 2 outperformance players) make use of velocity a lot more than non top players
+3. from the correlation plot, outperformance is correlated with actual goal rate which is expected, actual goal rate is correlated with avg xg, suggesting that a lot of the ability to score goals comes from positioning/ball stuff. actual goal rate actually is not super correlated with count, suggesting that skilled players are actually skilled. 
+
 # Appendix
-Subset of locational features used in models
+
+## Subset of location features used in models
 ```{r}
 data <- read.csv("../results/clean_shot_data.csv") %>%
   select(-c(X, idx)) %>%
@@ -137,4 +180,10 @@ names(data) %>%
         booktabs = TRUE, digits = 2, 
         caption = "Subset of Location Features") %>%
   kable_styling(position = "center", latex_options = "HOLD_position")
+```
+
+## Logistic regression summary output
+```{r glm-fit}
+load("../results/glm_fit.rda")
+summary(glm_fit)
 ```
