@@ -50,7 +50,7 @@ Because our analysis is on intended shot attempts, we filtered the data for fram
 # Exploratory Data Analysis
 ## Field Set Up
 As a first step, we explored the location data to get a sense of the placement of the goal. Based on Figure \@ref(fig:xyfield), it seems that the goal post is located at $(0,5000,0)$.
-```{r xyfield, out.width = "100%", fig.cap = "X-Y Field and Shot Outcome", fig.align='center', echo = FALSE, fig.pos = "H"}
+```{r xyfield, out.width = "80%", fig.cap = "X-Y Field and Shot Outcome", fig.align='center', echo = FALSE, fig.pos = "H"}
 knitr::include_graphics("../results/xy_field.png")
 ```
 
@@ -163,7 +163,7 @@ read.csv("../results/xg_model_eval.csv") %>%
   kable_styling(position = "center", latex_options = "HOLD_position")
 ```
 
-To visualize the robustness of the model, we recreated images of the field with data points representing each shot taker's attempt location. [ discuss: goals at the bottom of the field ]
+To visualize the robustness of the model, we recreated images of the field with data points representing each shot taker's attempt location. Note that there are some goals made from the bottom of the field, namely where the $y$ coordinate of the shot taker is below 0. After looking into the orientation of the players, most of these shots were made when the opponents were positioned in inopportune locations (like on both sides of the shot taker, leaving the goal wide open). 
 
 ```{r xg-field, out.width = "80%", fig.cap = "Outcome and xG Field Visualization", fig.align='center', echo = FALSE, fig.pos = "H"}
 knitr::include_graphics("../results/xg-field.png")
@@ -192,7 +192,7 @@ read.csv("../results/aggregate.csv") %>%
 knitr::include_graphics("../results/outperformance-corrplot.png")
 ```
 
-To visualize relationships across these player-specific aggregate metrics, we created a correlation plot shown in Figure \@ref(fig:outperformance-corrplot). The sum of the xG across all shot attempts is correlated with total goals and number of attempts, which makes sense as a higher xG is dependent on more shots, and more shots allows for more opportunities for goals. Outperformance is correlated with acual goal rate, which would be expected given a robust model. Moreover, the sum of xG and total goals is correlated, and actual goal rate is correlated with average xG, which are expected results. What's interesting is that outperformance is not strongly correlated with average xG or sum of xG, which suggests that outperformance is a random process, and scoring goals above what is expected can be attributed to covariates other than positioning, like luck and randomness.  [ CHECK WITH GROUP ]
+To visualize relationships across these player-specific aggregate metrics, we created a correlation plot shown in Figure \@ref(fig:outperformance-corrplot). The sum of the xG across all shot attempts is correlated with total goals and number of attempts, which makes sense as a higher xG is dependent on more shots, and more shots allows for more opportunities for goals. Outperformance is correlated with acual goal rate, which would be expected given a robust model. Moreover, the sum of xG and total goals is correlated, and actual goal rate is correlated with average xG, which are expected results. What's interesting is that outperformance is not strongly correlated with average xG or sum of xG, which suggests that outperformance is a random process, and scoring goals above what is expected can be attributed to covariates other than positioning, like luck and randomness.
 
 ```{r outperf-summary, echo = FALSE}
 read.csv("../results/outperf_summary.csv") %>%
@@ -215,7 +215,7 @@ In soccer, players are assigned specialized positions such as goal-keeper, midfi
 
 From here, we draw three hypotheses:
 
-$H_0$ (null): There is no correlation between offensive skill and defensive skill. Since players rotate between offensive and defensive multiple times per game, we may expect that players are spending roughly equal amounts of time in the defensive and offensive positions and there is no relationship between offensive skill and defensive skill. [thus are equally skilled at both -- discuss w group ]
+$H_0$ (null): There is no correlation between offensive skill and defensive skill. Since players rotate between offensive and defensive multiple times per game, we may expect that players are spending roughly equal amounts of time in the defensive and offensive positions and there is no relationship between offensive skill and defensive skill.
 
 $H_1$: There is a positive correlation between offensive skill and defensive skill. Players who are skilled will tend to be better at both the offensive and defensive positions.
 
@@ -228,7 +228,7 @@ The use of these values as proxies is debatable, and there are strong limitation
 Our results of this analysis are shown below in Figure \@ref(fig:saved-xg). Running a simple OLS regression to predict average xG using average xG saved yields an $R^2$ value of $5.456e^-05$, suggesting that there is little correlation. This means that we fail to reject the null hypothesis, and conclude that there is no correlation between offensive and defensive skill and players roughly spend equal amounts of time rotating between an offensive and defensive position. 
 
 ```{r saved-xg, out.width = "60%", fig.cap = "Average xG Defended vs. Average xG", fig.align='center', echo = FALSE, fig.pos = "H"}
-knitr::include_graphics("../results/goals_saved_xg.png")
+knitr::include_graphics("../results/def_off.png")
 ```
 
 # Rocket League Championship Series Top Match Analysis
@@ -294,7 +294,7 @@ read.csv("../results/case_study/na_3.csv") %>%
   kable_styling(position = "center", latex_options = "HOLD_position")
 ```
 
-The 3rd match-up in the North American championship was even more of a nail-biter than the last one. The two teams had each won 1 of the 3 matches, meaning the final match was the chamption-decider [ check linda ]. Neither teams had been able to score, and with the two teams were tied at 0-0 at the end of regulation time, the match went into sudden-death overtime. The first team to make a goal would win the match and thus the entire championship. Ultimately, Team LM was able to first shot and win.
+The 3rd match-up in the North American championship was even more of a nail-biter than the last one. The two teams had each won 1 of the 3 matches, meaning the final match was the championship-decider. Neither teams had been able to score, and with the two teams were tied at 0-0 at the end of regulation time, the match went into sudden-death overtime. The first team to make a goal would win the match and thus the entire championship. Ultimately, Team LM was able to first shot and win.
 
 The dearth of successful goals makes it difficult to analyze each players’ performance throughout the match, but the analysis of their average xG enables us to value the shots that didn’t result in a score. 
 

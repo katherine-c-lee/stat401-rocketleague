@@ -459,7 +459,8 @@ data_with_boost_xg = cbind(xgdata, predictions) %>%
 
 names(data_with_boost_xg)
 
-
+data_with_boost_bin_goal <- data_with_boost_xg
+data_with_boost_bin_goal$goal <- as.factor(data_with_boost_bin_goal$goal)
 p_xg <- data_with_boost_xg %>%
   ggplot(aes(x = shot_taker_pos_x, y = shot_taker_pos_y, colour = xg)) +
   geom_point(size = 0.001) +
@@ -469,12 +470,18 @@ p_xg <- data_with_boost_xg %>%
   labs(x = "Shot Taker X Position", y = "Shot Taker Y Position")
 
 p_outcome <- data_with_boost_xg %>%
-  ggplot(aes(x = shot_taker_pos_x, y = shot_taker_pos_y, colour = goal)) +
-  geom_point(size = 0.001) +
+  ggplot(aes(x = shot_taker_pos_x, y = shot_taker_pos_y)) +
+  geom_point(aes(colour = as.factor(goal)), size = 0.001) +
   geom_tile() +
   theme_bw() +
   # scale_colour_gradientn(colours = terrain.colors(10)) +
   labs(x = "Shot Taker X Position", y = "Shot Taker Y Position")
+
+ggsave(filename = "results/xy_field.png",
+       plot = p_outcome, 
+       device = "png", 
+       width = 6, 
+       height =4)
 
 p_all = plot_grid(p_xg, p_outcome, 
                   nrow = 2)

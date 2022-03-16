@@ -184,3 +184,14 @@ data_with_boost_xg %>%
 # [ 1. the shot taker that is "best" in terms of outperformance stands out from the average shot from 
 # 1) ball ang vel x (smaller angular vel) and 2) ball hit team no (positive)
 # 2. generally it seems like top players (based on top 2 outperformance players) make use of velocity a lot more than non top players ]
+
+
+############ why there are goals at the bottom of the field ##############
+data_with_boost_xg %>%
+  filter(shot_taker_pos_y < 0) %>%
+  filter(goal == 1) %>%
+  select(shot_taker_pos_x, shot_taker_pos_y, opp_1_pos_x, opp_1_pos_y,
+         opp_2_pos_x, opp_2_pos_y)
+
+## just looking at the first few obserations, it looks like the shot taker may shoot when y<0
+# when the opponents are positioned in inopportune spots (like on both sides, with the goal wide open)
