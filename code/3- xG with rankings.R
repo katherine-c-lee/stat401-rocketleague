@@ -25,6 +25,8 @@ shot_data <- read.csv(file = "data/clean/shot_data.csv")
 #   select(-c(shot))
 #######################
 
+dim(shot_data)
+
 clean_shot_data <- shot_data %>%
   select(-c(frame, time, is_orange,
             opp_1_id, opp_2_id)) %>%
@@ -166,6 +168,7 @@ glm_fit = glm(goal ~ . - idx - distanceToGoal,
               family = "binomial" (link = "logit"), 
               data = shot_train)
 summary(glm_fit)
+save(glm_fit, file = "results/glm_fit.Rda")
 
 # probability predictions
 glm_pred = predict(glm_fit, type = "response", newdata = shot_test)
@@ -200,7 +203,7 @@ opt_threshold = roc_data$thresholds[gmean_max]
 opt_threshold
 
 # misclassification rate with optimal threshold
-glm_pred_class <- ifelse(glm_pred > opt_threshold, 1, 0)
+glm_pred_class <- ifelse(glm_pred > 0.5, 1, 0)
 glm_misclass = mean(glm_pred_class != shot_test$goal)
 glm_misclass
 accuracy = 1-glm_misclass
@@ -455,6 +458,34 @@ data_with_boost_xg = cbind(xgdata, predictions) %>%
   as_tibble()
 
 names(data_with_boost_xg)
+
+
+p_xg <- data_with_boost_xg %>%
+  ggplot(aes(x = shot_taker_pos_x, y = shot_taker_pos_y, colour = xg)) +
+  geom_point(size = 0.001) +
+  geom_tile() +
+  theme_bw() +
+  scale_colour_gradientn(colours = terrain.colors(10)) +
+  labs(x = "Shot Taker X Position", y = "Shot Taker Y Position")
+
+p_outcome <- data_with_boost_xg %>%
+  ggplot(aes(x = shot_taker_pos_x, y = shot_taker_pos_y, colour = goal)) +
+  geom_point(size = 0.001) +
+  geom_tile() +
+  theme_bw() +
+  # scale_colour_gradientn(colours = terrain.colors(10)) +
+  labs(x = "Shot Taker X Position", y = "Shot Taker Y Position")
+
+p_all = plot_grid(p_xg, p_outcome, 
+                  nrow = 2)
+
+ggsave(filename = "results/xg-field.png", 
+       plot = p_all, 
+       device = "png", 
+       width = 6, 
+       height = 10)
+
+
 
 ############################# xG Model Evaluation ##############################
 # for benchmark, find log loss when just predicting the mean of the training set
