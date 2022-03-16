@@ -55,6 +55,47 @@ corrplot(cor(aggregate_no_ids),        # Correlation matrix
          bg = "white",     # Background color
          col = NULL)       # Color palette
 
+############# outperformance residual plot ##############
+avg_outperformance = aggregate %>%
+  summarise(avg_outperformance = mean(outperformance)) %>%
+  as.numeric()
+stdev_outperformance = aggregate %>%
+  summarise(sd_outperformance = sd(outperformance)) %>%
+  as.numeric()
+
+outperf_summary <- tribble(
+  ~"Mean", ~"Standard Deviation",
+  #--|--|----
+  avg_outperformance, stdev_outperformance,
+)
+write.csv(outperf_summary, file = "results/outperf_summary.csv")
+
+## calculate distance from the mean for all players
+agg_with_outperf_residual <- aggregate %>%
+  mutate(outperformance_residual = outperformance - avg_outperformance) %>%
+  mutate(outperformance_zscore = (outperformance - avg_outperformance)/stdev_outperformance)
+
+p_res <- agg_with_outperf_residual %>%
+  ggplot(aes(x = avg_xg, y = outperformance_residual)) +
+  geom_point() +
+  theme_bw() +
+  labs(x = "Average xG", y = "Outperformance - Average Outperformance")
+
+p_z <- agg_with_outperf_residual %>%
+  ggplot(aes(x = avg_xg, y = outperformance_zscore)) +
+  geom_point() +
+  theme_bw() + 
+  labs(x = "Average xG", y = "Outperformance Z-Score")
+
+p_res_and_z = plot_grid(p_res, p_z, 
+                  nrow = 1)
+ggsave(filename = "results/outperformance-scatter.png", 
+       plot = p_res_and_z, 
+       device = "png", 
+       width = 7, 
+       height = 5)
+
+
 # top 5 players in terms of excess goals
 top5_outperformance = head(aggregate, 5)
 top5_outperformance
@@ -138,3 +179,8 @@ data_with_boost_xg %>%
   filter(shot_taker_id == "76561198012337838") %>%
   select(goal, distanceToGoal, xg, shot_taker_pos_x, 
          shot_taker_pos_y, shot_taker_pos_z)
+
+# [ old stuff that i will likely cut ] Some insights:
+# [ 1. the shot taker that is "best" in terms of outperformance stands out from the average shot from 
+# 1) ball ang vel x (smaller angular vel) and 2) ball hit team no (positive)
+# 2. generally it seems like top players (based on top 2 outperformance players) make use of velocity a lot more than non top players ]

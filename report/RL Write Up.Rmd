@@ -179,17 +179,27 @@ read.csv("../results/aggregate.csv") %>%
 knitr::include_graphics("../results/outperformance-corrplot.png")
 ```
 
-To visualize relationships across these player-specific aggregate metrics, we created a correlation plot shown in Figure \@ref(fig:outperformance-corrplot). The sum of the xG across all shot attempts is correlated with total goals and number of attempts, which makes sense as a higher xG is dependent on more shots, and more shots allows for more opportunities for goals. Outperformance is correlated with acual goal rate, which would be expected given a robust model. Moreover, the sum of xG and total goals is correlated, and actual goal rate is correlated with average xG, which are expected results. What's interesting is that outperformance is not strongly correlated with average xG or sum of xG, which suggests that scoring goals can be attributed to covariates other than positioning, such as luck and randomness. [ CHECK WITH GROUP ]
+To visualize relationships across these player-specific aggregate metrics, we created a correlation plot shown in Figure \@ref(fig:outperformance-corrplot). The sum of the xG across all shot attempts is correlated with total goals and number of attempts, which makes sense as a higher xG is dependent on more shots, and more shots allows for more opportunities for goals. Outperformance is correlated with acual goal rate, which would be expected given a robust model. Moreover, the sum of xG and total goals is correlated, and actual goal rate is correlated with average xG, which are expected results. What's interesting is that outperformance is not strongly correlated with average xG or sum of xG, which suggests that outperformance is a random process, and scoring goals above what is expected can be attributed to covariates other than positioning, like luck and randomness.  [ CHECK WITH GROUP ]
 
-[ old stuff that i will likely cut ] Some insights:
-[ 1. the shot taker that is "best" in terms of outperformance stands out from the average shot from 1) ball ang vel x (smaller angular vel) and 2) ball hit team no (positive)
-2. generally it seems like top players (based on top 2 outperformance players) make use of velocity a lot more than non top players ]
+```{r outperf-summary, echo = FALSE}
+read.csv("../results/outperf_summary.csv") %>%
+  select(-c(X)) %>%
+  as_tibble() %>%
+  kable(format = "latex", row.names = NA, 
+        booktabs = TRUE, digits = 2, 
+        caption = "Outperformance Mean and SD") %>%
+  kable_styling(position = "center", latex_options = "HOLD_position")
+```
+To further visualize the relationship between outperformance and average xG per player, we created scatterplots (Figure \@ref(fig:outperf-scatter)) between average xG and outperformance residual (defined by outperformance - average outperformance across all players) and average xG and outperformance z-score. The average and standard deviation of all players' outperformance scores are given in Table \@ref(tab:outperf-summary). Upon examination, the relationship between xG and the outperformance residual and z-score appear to be random, suggesting that scoring goals above what is expected given the location of all players and various ball features is largely due to luck.
+
+
+```{r outperf-scatter, out.width = "80%", fig.cap = "Outerperformance Scatterplots", fig.align='center', echo = FALSE, fig.pos = "H"}
+knitr::include_graphics("../results/outperformance-scatter.png")
+```
 
 # Understanding Offensive and Defensive Playing Styles
 
 # Comparing Top 2 Rocket League Champion Play Styles
-
-
 
 
 # Appendix
