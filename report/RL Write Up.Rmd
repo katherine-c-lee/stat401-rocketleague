@@ -29,9 +29,13 @@ knitr::include_graphics("../results/coverpage.jpeg")
 
 Rocket League is a multi-platform game where players control cars with a rocket booster and aim to score as many goals as possible within 5 minutes using an oversized ball. The ball never leaves the field and is a team game, but for our analysis, we focused on 2 versus 2 player mode. Players have the ability to control the direction, velocity, and rotation of their cars and can jump to hit the ball. This allows players the ability to take shots or control the car to dribble, pass, and block incoming shots.
 
-Our dataset includes random frames of 2 versus 2 player Rocket League games that includes location data of all 4 players, car features, ball position, and whether or not a particular shot resulted in a goal. 
+Our dataset includes random frames of 2 versus 2 player Rocket League games that includes location data of all 4 players, car features, ball position, and whether or not a particular shot resulted in a goal. The dataset is from [ website -- to write ]
 
-For our analysis, we built an expected goals (xG) model using location data to predict goals for a given frozen game frame. xG is important in that it is an estimator of goals a team is expected to score in the long run. Using our xG model, we explored individual player ability and analyzed the question: are good players good because they use more attempts, or are good players good because they are truly better skilled?
+For our analysis, we built an expected goals (xG) model using location data to predict goals for a given frozen game frame. xG is important in that it is an estimator of goals a team is expected to score in the long run. Using the xG model, we were able to explore individual play styles and understand characteristics of the top two Rocket League championship players. 
+
+We found the following insights:
+
+1. 
 
 \newpage
 
@@ -50,12 +54,12 @@ knitr::include_graphics("../results/xy_field.png")
 ```
 
 ## Feature-Feature and Feature-Response Correlation
-Next, we explored high-level relationships and correlations of the predictor variables with other predictor variables. We first looked at correlations between a few school-specific features, as shown in Figure \@ref(fig:position-corrplot). We observe a positive correlation between the $(x,y,z)$ positions of the ball and the shot taker, as well as between the position of the shot taker, the teammate, and the opponents.
+Next, we explored high-level relationships and correlations of the predictor variables with other predictor variables. We first looked at correlations between a few school-specific features, as shown in Figure \@ref(fig:position-corrplot). We observe a positive correlation between the $(x,y,z)$ positions of the ball and the shot taker, as well as between the position of the shot taker, the teammate, and the opponents. Ultimately, we chose to include all of the correlated features, as we believe it to be informative from what angle the shot taker is striking the ball at (i.e. it could be that more skilled players are striking the ball from below or from above), as well as the locations of all players in the field.
 ```{r position-corrplot, out.width = "60%", fig.cap = "Position Features Correlation Plot", fig.align='center', echo = FALSE, fig.pos = "H"}
 knitr::include_graphics("../results/position_data_corrplot.png")
 ```
 
-In addition, we looked relationships of some predictor variables with the response variable. Specifically, we examined how distances to the goal, to the shot taker's teammate, and to the two opponents were associated with the goal outcome. As shown in Figure \@ref(fig:box-distance), the log of the distance to the goal has a noticable difference, with shorter distances resulting in more goals. The shot taker's distance to the teammate and the two opponents have less of a difference between those shots that resulted in goals and those that did not.
+In addition, we looked relationships of some predictor variables with the response variable. Specifically, we examined how distances to the goal, to the shot taker's teammate, and to the two opponents were associated with the goal outcome. As shown in Figure \@ref(fig:box-distance), the log of the distance to the goal has a notable difference, with shorter distances resulting in more goals. The shot taker's distance to the teammate and the two opponents have less of a difference between those shots that resulted in goals and those that did not.
 ```{r box-distance, out.width = "60%", fig.cap = "Position Features Correlation Plot", fig.align='center', echo = FALSE, fig.pos = "H"}
 knitr::include_graphics("../results/box-distances.png")
 ```
@@ -67,18 +71,20 @@ knitr::include_graphics("../results/box-distances.png")
 We built four expected goals models using logistic regression, penalized regressions (ridge and lasso), and boosted trees. We included two penalized regressions to account for the high dimensionality of the dataset and for variance reduction purposes. Because of the nature of the dataset, we have data about the ball's trajectory, so we can easily compute whether a shot will result in a goal or not. However, for our model, we used position, velocity, angular velocity, and rotation of the shot taker, defender, and teammate to build our model. To train our model, we predicted the outcome of a shot (goal or no goal) for a particular frame. This implies that our xG estimates are for a set of positions of the shot taker, teammate, and defenders. 
 
 ## Analysis Goals
-Expected goals (xG) is the expected probability of the total number of goals in a soccer match, given the number of attempts and the probability of a goal, computed by considering several factors such as the distance to the goal, the angle as well as the part of the body used to score. The xG model was first implemented by bookmakers, but soon was used by data analysts in soccer clubs. By comparing expected goals with the actual goals scored, soccer clubs can evaluate individual player performance (and discover high and low efficiency players) as well as overall team analysis. In the same vein, xG models can be used to evaluate the defensive performances of individual players (such as goalkeepers) and teams. Players and teams with higher opponent xG’s compared to actual opponent goals scored are more skilled defensively and vice versa. xG models are important because it quantifies the value of scoring chances, and allows coaches, teams and viewers to identify players and teams that are underperforming as well as overperforming relative to their expected goals.
+Expected goals (xG) is the expected probability of the total number of goals in a soccer match, given the number of attempts and the probability of a goal, computed by considering several factors such as the distance to the goal, the angle between the shot taker and the goal, as well as the part of the body used to score. The xG model was first implemented by bookmakers, but soon was used by data analysts in soccer clubs. By comparing expected goals with the actual goals scored, soccer clubs can evaluate individual player performance (and discover high and low efficiency players) as well as overall team analysis. In the same vein, xG models can be used to evaluate the defensive performances of individual players (such as goalkeepers) and teams. Players and teams with higher opponent xG’s compared to actual opponent goals scored are more skilled defensively and vice versa. xG models are important because it quantifies the value of scoring chances, and allows coaches, teams and viewers to identify players and teams that are under-performing as well as over-performing relative to their expected goals.
+
+Because expected goals is a popular concept in soccer, we built an expected goals model for Rocket League, which follows many of the same rules as soccer. The goal of the analysis is ultimately to determine the probability of scoring a goal using a number of location and ball features.
 
 ## Feature Engineering
-We used feature engineering to transform the raw data into features that can be used in supervised learning. 
+We used feature engineering to transform the raw data into features that can be used in supervised learning. [ linda to write ]
 
 ## Models
 We ran 4 models to predict expected goals: 1) a simple logistic regression with engineered features, 2) a ridge logistic regression, 3) a lasso logistic regression, and 4) an xgBoost classification model. The response variable was `goal`, which is represented in the dataset by a binary variable, and the explanatory variables include various location and positioning features. 
 
 ### Logistic Regression
-As a starting point, we built a simple logistic regression with 59 explanatory variables. We removed teammate positioning and car features as including the teammate features resulted in model non-convergence. While we are unsure why including teammate-specific data leads to non-convergence, we assume that this is partially attributable to the collinearity in the dataset. As displayed in the correlation plot (Figure \@ref(fig: position-corrplot)), there are correlations between the ball position, the shot taker position, and the teammate position. Extended results are reported in the Appendix. 
+As a starting point, we built a simple logistic regression with 59 explanatory variables. We removed teammate positioning and car features as including the teammate features resulted in model non-convergence. While we are unsure why including teammate-specific data leads to non-convergence, we assume that this is partially attributable to the collinearity in the dataset. As displayed in the correlation plot (Figure \@ref(fig:position-corrplot)), there are correlations between the ball position, the shot taker position, and the teammate position. Extended results are reported in the Appendix. 
 
-However, there were a number of significant variables, including: the $y$ and $z$ coordinates of the ball position, the ball velocity, the shot taker location, the opponent's velocity, the distance between the shot taker and the two opponents, and the angle between the shot taker and the goal.
+However, there were a number of significant variables, including: the $y$ and $z$ coordinates of the ball position, the ball velocity, the shot taker location, the opponent's velocity, the distance between the shot taker and the two opponents, and the angle between the shot taker and the two opponents. While the coordinates of the ball position, the shot taker's location, and the distance between the shot taker and the two opponents would influence goal probability as expected, it is interesting that ball velocity and the angle between the shot taker and the two opponents also impact xG. The coefficient for the ball velocity in the $y$ and $z$ directions are positive, which implies that shot takers who strike the ball when it's moving faster are more likely to score a goal. Moreover, the coefficient for the angle between both opponents is positive, which implies [ linda ]
 
 ### Penalized Regressions
 Despite identifying significant variables from the logistic regression, the method utilized 59 explanatory variables (with high intercorrelations), which could lead to a cost in variance, and thus inaccurate predictions. To combat these issues, we built and evaluated shrinkage models, namely ridge regression and lasso regression, with the goal of fitting a more parsimonious and interpretable model. Specifically, ridge regression is more stable when handling correlated features, as it "splits the credit" among correlated features, and lasso regression penalizes many features to 0, contributing to increased interpretability. For both penalized regression methods, we ran a 10-fold cross validation to optimize the choice of regularization parameters ($\lambda$). 
@@ -161,9 +167,12 @@ read.csv("../results/aggregate.csv") %>%
 When considering the types of player and shot taker style in an eSports setting, one idea to explore is whether player success is more dependent on more shot opportunities (taking more shots) or more dependent on positioning.
 
 Some insights:
-1. the shot taker that is "best" in terms of outperformance stands out from the average shot from 1) ball ang vel x (smaller angular vel) and 2) ball hit team no (positive)
-2. generally it seems like top players (based on top 2 outperformance players) make use of velocity a lot more than non top players
-3. from the correlation plot, outperformance is correlated with actual goal rate which is expected, actual goal rate is correlated with avg xg, suggesting that a lot of the ability to score goals comes from positioning/ball stuff. actual goal rate actually is not super correlated with count, suggesting that skilled players are actually skilled. 
+[ 1. the shot taker that is "best" in terms of outperformance stands out from the average shot from 1) ball ang vel x (smaller angular vel) and 2) ball hit team no (positive)
+2. generally it seems like top players (based on top 2 outperformance players) make use of velocity a lot more than non top players ]
+
+3. from the correlation plot, outperformance is correlated with actual goal rate which is expected if the model is robust, actual goal rate is correlated with avg xg, suggesting that a lot of the ability to score goals comes from positioning/ball stuff (instead of randomness).
+
+- outperformance not correlated with avg xg? outperformance = total actual goals / sum of xg
 
 # Appendix
 
