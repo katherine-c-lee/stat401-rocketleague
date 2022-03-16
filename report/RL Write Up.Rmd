@@ -79,7 +79,22 @@ Expected goals (xG) is the expected probability of the total number of goals in 
 Because expected goals is a popular concept in soccer, we built an expected goals model for Rocket League, which follows many of the same rules as soccer. The goal of the analysis is ultimately to determine the probability of scoring a goal using a number of location and ball features.
 
 ## Feature Engineering
-We used feature engineering to transform the raw data into features that can be used in supervised learning. [ linda to write ]
+On top of the original features in our dataset, which can be found in the Appendix, we conducted feature engineering to extract meaningful features from our data. These are summarized below.
+
+`logDistanceToGoal`: Log distance between player and the goal
+
+`distanceToOpp1`: Distance between player and opponent 1
+
+`distanceToOpp2`: Distance between player and opponent 2
+
+`distanceToTeam`: Distance between player and team mate
+
+`cos_theta_opp_1`: Cosine of theta, where theta represents the angle between the ball’s velocity vector and the distance vector between the ball and opponent 1’s position
+
+`cos_theta_opp_2`: Cosine of theta, where theta represents the angle between the ball’s velocity vector and the distance vector between the ball and opponent 2’s position
+
+These engineered features further introduced collinearity, which influenced our model-making decisions.
+
 
 ## Models
 We ran 4 models to predict expected goals: 1) a simple logistic regression with engineered features, 2) a ridge logistic regression, 3) a lasso logistic regression, and 4) an xgBoost classification model. The response variable was `goal`, which is represented in the dataset by a binary variable, and the explanatory variables include various location and positioning features. 
@@ -198,8 +213,56 @@ knitr::include_graphics("../results/outperformance-scatter.png")
 ```
 
 # Understanding Offensive and Defensive Playing Styles
+In soccer, players are assigned specialized positions such as goal-keeper, midfielder, forward, and striker. Unlike its real-world counterpart, in Rocket League, players use a strategy called "rotations" to position themselves. A common rotation in 2v2 matches involves a player “challenging” the ball, then backing up to cover space in the field while their team mate moves up to receive and “challenge” a ball. Here, “challenging” the ball means to win control over the ball’s direction. For our research paper, we will assume that these strategies can be understood as a rotation between defensive and offensive postures. We further assume that the two positions require similar yet slightly different skill sets. 
+
+From here, we draw three hypotheses:
+
+$H_0$ (null): There is no correlation between offensive skill and defensive skill. Since players rotate between offensive and defensive multiple times per game, we may expect that players are spending roughly equal amounts of time in the defensive and offensive positions and thus are equally skilled at both. 
+
+$H_1$: There is a positive correlation between offensive skill and defensive skill. Players who are skilled will tend to be better at both the offensive and defensive positions.
+
+$H_2$: There is a negative correlation between offensive skill and defensive skill. Players have an inclination to be better than either offensive or defensive positions. 
+
+Using the xG we calculated, we will use average xG and average xG defended (defined below) as proxies for offensive and defensive skill. We will define xG defended for player $u$ to be equal to the sum of the xG minus the goal outcome (where 1 is a goal and 0 is no goal) for each shot a player $u$ had the opportunity to block. Naturally, we will define average xG defended for player $u$ to equal xG defended divided by total shots player $u$ had the opportunity to block.
+
+The use of these values as proxies is debatable, and there are strong limitations to both proxies. Average xG is a poor proxy for offensive skill as it only takes into account the player’s ability to shoot a successful goal, and does not account for the player’s skill in dribbling or passing during an offensive run. Similarly, average xG defended is a poor proxy for defensive skill as it only takes into account the player’s ability to block a shot, and does not account for the player’s skill in interception. 
+
+Our results of this analysis are shown below in Figure \@ref(fig:saved-xg). Running a simple OLS regression to predict average xG using average xG saved yields an $R^2$ value of $5.456e^-05$, suggesting that there is little correlation. This means that we fail to reject the null hypothesis, and conclude that there is no correlation between offensive and defensive skill and players roughly spend equal amounts of time rotating between an offensive and defensive position. 
+
+```{r saved-xg, out.width = "80%", fig.cap = "Average xG Defended vs. Average xG", fig.align='center', echo = FALSE, fig.pos = "H"}
+knitr::include_graphics("../results/goals_saved_xg.png")
+```
 
 # Comparing Top 2 Rocket League Champion Play Styles
+The Rocket League Championship Series (RLCS) is a world championship event hosted by Psyonix, the company that developed Rocket League. To examine top player play styles, we applied the boosting model on the 2020 2v2 Championship games in the Europe and North American region. Within each region, each game consisted of two teams competing against each other in a best-of-3 match-up. This gave us a total of 6 games worth of data to analyze. Note that we ignored goals whose last-hit occurred before the game-time was over, but resulted in a score after the game-time was over. This results in small differences between the official published goals and our goals. 
+
+For our case study, we will focus on a few surprising findings based on our analysis.
+
+## European 1st Match
+The match details are shown in Figure \@ref(fig:europe-1).
+```{r europe-1, out.width = "80%", fig.cap = "European 1st Match Details", fig.align='center', echo = FALSE, fig.pos = "H"}
+knitr::include_graphics("../results/europe_match1_details.png")
+```
+
+With a final score of 7-2 for Team Dignitas, the first match of the European championship reflected poorly on Team Tortilla. The analysis of the players’ xG, however, tells a very different story. 
+
+Notably, the players on the winning team Dignitas had significantly worse shot-quality than the players on the losing team Tortilla. Itachi and Stake have average xG scores that are factors of two to four times greater than their counterparts’, indicating the high quality of their positioning, and yet the actual score does not reflect this. What might explain this discrepancy? 
+
+Team Tortilla and Dignitas made a total of 7 and 10 shot attempts, respectively. **The difference is small, so the number of goal attempts does not seem to have massively contributed to the large gap in score.** This means that the score differential is likely attributable to defensive ability: it could be that Team Tortilla was just lousy at defense, letting too many balls in that they could have likely blocked or that Team Dignitas may have had an excellent defense. Or, it could have been pure luck. 
+
+## European 3rd Match
+The match details are shown in Figure \@ref(fig:europe-3). 
+```{r europe-3, out.width = "80%", fig.cap = "European 3rd Match Details", fig.align='center', echo = FALSE, fig.pos = "H"}
+knitr::include_graphics("../results/europe_3.png")
+```
+
+The 3rd match-up between team Tortilla and team Dignitas was a nail-biter. The two teams were tied at 2-2. At the very last moment of the 5-minute regulation period, with 0 seconds left on the clock, Team Tortilla’s player itachi scored the team’s 3rd goal, preventing an overtime period and winning the match. Throughout the game, the two teams seemed evenly-matched, neck-to-neck. 
+
+Analyzing the players’ statistics gives us more insight into this game. Players Itachi and Stake of Team Tortilla had made far more shots than Team Dignitas, at 14 cumulative shots compared to 6. This was offset by the fact that Team Dignitas’s player ApparentlyJack had better positioning with each shot, with the highest average xG per shot of 0.436 in the game. Though the two Dignitas teammates had the same number of goals, ApparentlyJack’s average xG and thus his shot quality far exceeded his teammate’s. At an average xG of 0.436, ApparentlyJack’s xG was more than twice as high as his teammate’s. 
+
+Ultimately, Team Tortilla had a cumulative xG of 4.92 versus Team Dignitas’ 1.63, so perhaps Team Tortilla’s eventual win is not too surprising and the narrow gap between the two teams was a result of luck on Dignitas’s part.
+
+The summary results of the 3 North American matches show that 2Piece and MaJicBear, both of whom were on the winning team ‘LAST MINUTE’, had an average xG that surpassed their actual goal rate. 
 
 
 # Appendix

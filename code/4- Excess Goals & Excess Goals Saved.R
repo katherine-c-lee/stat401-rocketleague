@@ -148,10 +148,16 @@ excess_goals_and_saved <- xg_saved %>%
   inner_join(aggregate, by = c("saver_id" = "shot_taker_id"))
 
 # plot relationship between excess saved & excess goals
-excess_goals_and_saved %>%
+goals_saved_xg <- excess_goals_and_saved %>%
   ggplot(aes(x = excess_goals_saved, y = outperformance)) + 
   geom_point() +
-  geom_smooth(method=lm)
+  geom_smooth(method=lm, se = FALSE)
+
+ggsave(filename = "results/goals_saved_xg.png", 
+       plot = goals_saved_xg, 
+       device = "png", 
+       width = 6, 
+       height = 5)
 
 # we only have 177 data points
 nrow(excess_goals_and_saved) 
