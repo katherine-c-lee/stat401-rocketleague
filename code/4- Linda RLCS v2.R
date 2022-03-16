@@ -8,6 +8,7 @@ library(randomForest)  # random forests
 library(gbm)           # boosting
 library(RColorBrewer)
 library(ROCR)
+library(MLmetrics)
 
 ######  Linda #########
 setwd('/Users/lindawang/Desktop/Final Project Python Code/outputs')
@@ -164,16 +165,18 @@ analyze_game <- function(xg_df, shots_df) {
               sumGoals = sum(goal)) %>% 
     right_join(shots_df, by = c('shot_taker' = 'playerName')) %>% 
     mutate(goalRate = sumGoals / actualShots) %>% 
-    mutate(avgXG = sumXG / actualShots)
+    mutate(avgXG = sumXG / actualShots) %>% 
+    replace_na(list('sumXG' = 0, 'sumGoals' = 0, 
+                    'goalRate' = 0, 'avgXG' = 0))
 }
 
 
-analyze_game(europe_1_xg, europe_1_shots)
-analyze_game(europe_2_xg, europe_2_shots)
-analyze_game(europe_3_xg, europe_3_shots)
-analyze_game(na_1_xg, na_1_shots)
-analyze_game(na_2_xg, na_2_shots)
-analyze_game(na_3_xg, na_3_shots)
+write.csv(analyze_game(europe_1_xg, europe_1_shots),'final/europe_1.csv', row.names = FALSE)
+write.csv(analyze_game(europe_2_xg, europe_2_shots),'final/europe_2.csv', row.names = FALSE)
+write.csv(analyze_game(europe_3_xg, europe_3_shots),'final/europe_3.csv', row.names = FALSE)
+write.csv(analyze_game(na_1_xg, na_1_shots),'final/na_1.csv', row.names = FALSE)
+write.csv(analyze_game(na_2_xg, na_2_shots),'final/na_2.csv', row.names = FALSE)
+write.csv(analyze_game(na_3_xg, na_3_shots),'final/na_3.csv', row.names = FALSE)
 
 ######################## Player-Level Analysis ########################
 ## note that our method doesn't count goals that happen after gametime
