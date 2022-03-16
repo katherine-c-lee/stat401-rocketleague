@@ -31,15 +31,13 @@ Rocket League is a multi-platform game where players control cars with a rocket 
 
 Our dataset includes random frames of 2 versus 2 player Rocket League games that includes location data of all 4 players, car features, ball position, and whether or not a particular shot resulted in a goal. The dataset is from [Ball Chasing](ballchasing.com), which includes data from various Rocket League game replays.
 
-For our analysis, we built an expected goals (xG) model using location data to predict goals for a given frozen game frame. xG is important in that it is an estimator of goals a team is expected to score in the long run. Using the xG model, we were able to explore individual play styles and understand characteristics of the top two Rocket League championship players. 
+For our analysis, we built an expected goals (xG) model using location data to predict goals for a given frozen game frame. xG is important in that it is an estimator of goals a team is expected to score in the long run. Using the xG model, we explored:
 
-We found the following insights:
+1. What does it mean for a player to "outperform"? Is outperformance a random process, or is it largley attribuable to a player's ability to position and utilize ball features well?
 
-1. Outperformance, defined by the total goals scored divided by the sum of the player's xG, is not correlated with average xG, suggesting that there is no relationship between how many "excess" goals a player can score based on what we would expect given positioning features, and the average positioning across all of the player's attempts.
+2. Even though Rocket League does not assign specific positions as soccer does, do players adopt a strictly offensive or strictly defensive position? Or are skilled players good at both offense and defense?
 
-2. Players rarely adopt a strictly offensive or strictly defensive position. Most play styles involve moving around the field and adopting a dynamic play style.
-
-3. Between the top 2 Rocket League champions, [ ]
+3. What were the playstyles of the players in the Rocket League Championship Series games? Was the outcome expected given aggregate game statistics, like accumulated xG?
 
 \newpage
 
@@ -217,7 +215,7 @@ In soccer, players are assigned specialized positions such as goal-keeper, midfi
 
 From here, we draw three hypotheses:
 
-$H_0$ (null): There is no correlation between offensive skill and defensive skill. Since players rotate between offensive and defensive multiple times per game, we may expect that players are spending roughly equal amounts of time in the defensive and offensive positions and thus are equally skilled at both. 
+$H_0$ (null): There is no correlation between offensive skill and defensive skill. Since players rotate between offensive and defensive multiple times per game, we may expect that players are spending roughly equal amounts of time in the defensive and offensive positions and there is no relationship between offensive skill and defensive skill. [thus are equally skilled at both -- discuss w group ]
 
 $H_1$: There is a positive correlation between offensive skill and defensive skill. Players who are skilled will tend to be better at both the offensive and defensive positions.
 
@@ -229,11 +227,11 @@ The use of these values as proxies is debatable, and there are strong limitation
 
 Our results of this analysis are shown below in Figure \@ref(fig:saved-xg). Running a simple OLS regression to predict average xG using average xG saved yields an $R^2$ value of $5.456e^-05$, suggesting that there is little correlation. This means that we fail to reject the null hypothesis, and conclude that there is no correlation between offensive and defensive skill and players roughly spend equal amounts of time rotating between an offensive and defensive position. 
 
-```{r saved-xg, out.width = "80%", fig.cap = "Average xG Defended vs. Average xG", fig.align='center', echo = FALSE, fig.pos = "H"}
+```{r saved-xg, out.width = "60%", fig.cap = "Average xG Defended vs. Average xG", fig.align='center', echo = FALSE, fig.pos = "H"}
 knitr::include_graphics("../results/goals_saved_xg.png")
 ```
 
-# Comparing Top 2 Rocket League Champion Play Styles
+# Rocket League Championship Series Top Match Analysis
 The Rocket League Championship Series (RLCS) is a world championship event hosted by Psyonix, the company that developed Rocket League. To examine top player play styles, we applied the boosting model on the 2020 2v2 Championship games in the Europe and North American region. Within each region, each game consisted of two teams competing against each other in a best-of-3 match-up. This gave us a total of 6 games worth of data to analyze. Note that we ignored goals whose last-hit occurred before the game-time was over, but resulted in a score after the game-time was over. This results in small differences between the official published goals and our goals. 
 
 For our case study, we will focus on a few surprising findings based on our analysis.
@@ -243,6 +241,16 @@ The match details are shown in Figure \@ref(fig:europe-1).
 ```{r europe-1, out.width = "80%", fig.cap = "European 1st Match Details", fig.align='center', echo = FALSE, fig.pos = "H"}
 knitr::include_graphics("../results/europe_match1_details.png")
 ```
+
+```{r europe-1-players, echo = FALSE}
+read.csv("../results/case_study/europe_1.csv") %>%
+  as_tibble() %>%
+  kable(format = "latex", row.names = NA, 
+        booktabs = TRUE, digits = 2, 
+        caption = "European 1st Match Player Statistics") %>%
+  kable_styling(position = "center", latex_options = "HOLD_position")
+```
+
 
 With a final score of 7-2 for Team Dignitas, the first match of the European championship reflected poorly on Team Tortilla. The analysis of the players’ xG, however, tells a very different story. 
 
@@ -256,14 +264,50 @@ The match details are shown in Figure \@ref(fig:europe-3).
 knitr::include_graphics("../results/europe_3.png")
 ```
 
+```{r europe-3-players, echo = FALSE}
+read.csv("../results/case_study/europe_3.csv") %>%
+  as_tibble() %>%
+  kable(format = "latex", row.names = NA, 
+        booktabs = TRUE, digits = 2, 
+        caption = "European 3rd Match Player Statistics") %>%
+  kable_styling(position = "center", latex_options = "HOLD_position")
+```
+
 The 3rd match-up between team Tortilla and team Dignitas was a nail-biter. The two teams were tied at 2-2. At the very last moment of the 5-minute regulation period, with 0 seconds left on the clock, Team Tortilla’s player itachi scored the team’s 3rd goal, preventing an overtime period and winning the match. Throughout the game, the two teams seemed evenly-matched, neck-to-neck. 
 
 Analyzing the players’ statistics gives us more insight into this game. Players Itachi and Stake of Team Tortilla had made far more shots than Team Dignitas, at 14 cumulative shots compared to 6. This was offset by the fact that Team Dignitas’s player ApparentlyJack had better positioning with each shot, with the highest average xG per shot of 0.436 in the game. Though the two Dignitas teammates had the same number of goals, ApparentlyJack’s average xG and thus his shot quality far exceeded his teammate’s. At an average xG of 0.436, ApparentlyJack’s xG was more than twice as high as his teammate’s. 
 
 Ultimately, Team Tortilla had a cumulative xG of 4.92 versus Team Dignitas’ 1.63, so perhaps Team Tortilla’s eventual win is not too surprising and the narrow gap between the two teams was a result of luck on Dignitas’s part.
 
-The summary results of the 3 North American matches show that 2Piece and MaJicBear, both of whom were on the winning team ‘LAST MINUTE’, had an average xG that surpassed their actual goal rate. 
+## North American 3rd Match
+The summary results of the 3rd North American match (Figure \@ref(fig:na-3)) show that 2Piece and MaJicBear, both of whom were on the winning team ‘LAST MINUTE’, had an average xG that surpassed their actual goal rate. 
+```{r na-3, out.width = "80%", fig.cap = "North American 3rd Match Details", fig.align='center', echo = FALSE, fig.pos = "H"}
+knitr::include_graphics("../results/na-3.png")
+```
 
+```{r na-3-players, echo = FALSE}
+read.csv("../results/case_study/na_3.csv") %>%
+  as_tibble() %>%
+  kable(format = "latex", row.names = NA, 
+        booktabs = TRUE, digits = 2, 
+        caption = "European 3rd Match Player Statistics") %>%
+  kable_styling(position = "center", latex_options = "HOLD_position")
+```
+
+The 3rd match-up in the North American championship was even more of a nail-biter than the last one. The two teams had each won 1 of the 3 matches, meaning the final match was the chamption-decider [ check linda ]. Neither teams had been able to score, and with the two teams were tied at 0-0 at the end of regulation time, the match went into sudden-death overtime. The first team to make a goal would win the match and thus the entire championship. Ultimately, Team LM was able to first shot and win.
+
+The dearth of successful goals makes it difficult to analyze each players’ performance throughout the match, but the analysis of their average xG enables us to value the shots that didn’t result in a score. 
+
+One thing that is strikingly obvious is that the players on the winning Team LM had a much higher average xG than their counterparts on the losing team. 2Piece and MaJicBear’s average xG per shot was more than a multiple of 10 larger than Lj and Shock’s average xG, speaking to their ability to position themselves. The two teams only had a difference of one shot made, suggesting that the major factor in Team LM winning the game was their ability to position their shot.
+
+# Conclusions
+In sum, we built an expected goals model using xgBoost to predict goal probability given various location and ball features. Then we extended our xG model to analyze the drivers behind outperformance and its relationship with the actual goal rate. We explored Rocket League rotations to understand whether skilled players good at both defense and offense or have a "niche" for defense or offense, or if there is no relationship. Then we concluded our analysis by applying our xG model to analyze top Rocket League Championship Series games. Our findings are as follows:
+
+1. Outperformance, defined by the total goals scored divided by the sum of the player's xG, is not correlated with average xG, suggesting that there is no relationship between how many "excess" goals a player can score based on what we would expect given positioning features, and the average positioning across all of the player's attempts. This suggests that outperformance is largely due to luck or randomness.
+
+2. Players rarely adopt a strictly offensive or strictly defensive position, and offensive and defensive ability do not correlate. This supports the idea that most play styles involve moving around a field and being a dynamic player.
+
+3. Average xG and number of shot attempts are not always the only contributing factors to determining the outcome of a match. There are many other features, like luck and defensive ability, that influence the outcome. 
 
 # Appendix
 
