@@ -75,22 +75,22 @@ clean_shot_data <- clean_shot_data %>%
 
 # create vectors between ball and opposition players
 clean_shot_data <- clean_shot_data %>%
-  add_column(vector_opp_1_x = (.$ball_pos_x - .$opp_1_pos_x))
+  add_column(vector_opp_1_x = (.$opp_1_pos_x - .$ball_pos_x))
 
 clean_shot_data <- clean_shot_data %>%
-  add_column(vector_opp_1_y = (.$ball_pos_y - .$opp_1_pos_y))
+  add_column(vector_opp_1_y = (.$opp_1_pos_y - .$ball_pos_y))
 
 clean_shot_data <- clean_shot_data %>%
-  add_column(vector_opp_1_z = (.$ball_pos_z - .$opp_1_pos_z))
+  add_column(vector_opp_1_z = (.$opp_1_pos_z - .$ball_pos_z))
 
 clean_shot_data <- clean_shot_data %>%
-  add_column(vector_opp_2_x = (.$ball_pos_x - .$opp_2_pos_x))
+  add_column(vector_opp_2_x = (.$opp_2_pos_x - .$ball_pos_x))
 
 clean_shot_data <- clean_shot_data %>%
-  add_column(vector_opp_2_y = (.$ball_pos_y - .$opp_2_pos_y))
+  add_column(vector_opp_2_y = (.$opp_2_pos_y - .$ball_pos_y))
 
 clean_shot_data <- clean_shot_data %>%
-  add_column(vector_opp_2_z = (.$ball_pos_z - .$opp_2_pos_z))
+  add_column(vector_opp_2_z = (.$opp_2_pos_z - .$ball_pos_z))
 
 # calculate dot products of position and velocity vectors 
 clean_shot_data <- clean_shot_data %>%
@@ -157,6 +157,7 @@ glm_fit = glm(goal ~ . - idx - distanceToGoal,
               family = "binomial" (link = "logit"), 
               data = shot_train)
 summary(glm_fit)
+save(glm_fit, file = "results/glm_fit.Rda")
 
 # probability predictions
 glm_pred = predict(glm_fit, type = "response", newdata = shot_test)
@@ -191,7 +192,7 @@ opt_threshold = roc_data$thresholds[gmean_max]
 opt_threshold
 
 # misclassification rate with optimal threshold
-glm_pred_class <- ifelse(glm_pred > opt_threshold, 1, 0)
+glm_pred_class <- ifelse(glm_pred > 0.5, 1, 0)
 glm_misclass = mean(glm_pred_class != shot_test$goal)
 glm_misclass
 accuracy = 1-glm_misclass
