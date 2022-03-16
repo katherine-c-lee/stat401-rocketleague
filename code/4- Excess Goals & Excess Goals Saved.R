@@ -17,11 +17,10 @@ setwd('/Users/lindawang/Library/Mobile Documents/com~apple~CloudDocs/Linda Wang/
 data_with_boost_xg <- read.csv(file = "data/clean/data_with_boost_xg.csv")
 shot_data <- read.csv(file = "data/clean/shot_data.csv")
 
-################################# Excess Goals  #################################
+################################# Expected Goals  #################################
 # this section is basically katie's code in the 3- file
 # made very minor modifications
 # using xgboost model with teammate data and engineered features as final model
-names(data_with_boost_xg)
 
 # sum all xgs for expected goals
 total_xg <- data_with_boost_xg %>%
@@ -39,37 +38,11 @@ total_attempts <- data_with_boost_xg %>%
 aggregate <- total_xg %>%
   inner_join(total_goals, by = "shot_taker_id") %>%
   inner_join(total_attempts, by = "shot_taker_id") %>%
-  mutate(outperformance = total_goals/(sum_xg)) %>%
   mutate(actual_goal_rate = total_goals/count) %>%
   mutate(avg_xg = sum_xg/count) %>%
-  arrange(desc(outperformance)) %>%
-  filter(count>20)
+  filter(count>10)
 
-# top 5 players in terms of excess goals
-head(aggregate, 5)
-
-# top 5 players in terms of total shots taken
-aggregate %>%
-  arrange(desc(count)) %>%
-  head(5)   
-
-## there is some overlap b/w the top 5 players by shots taken and top 5 by excess goals
-
-## this result could suggest that the game is really more based on luck and not really skill?
-
-# top average xg players
-aggregate %>%
-  arrange(desc(avg_xg)) %>%
-  head(5)
-
-## shot taker id 76561198124326808 seems to be good at positioning and takes lots of shots
-  
-# filter data for top players
-data_with_boost_xg %>%
-  as_tibble() %>%
-  filter(shot_taker_id == "76561198028093603")
-
-################################# Excess Goals Saved #################################
+################################# Expected Goals Saved #################################
 ## inner join with shot_data to grab opponent IDs
 shot_data_ids <- shot_data %>%
   select(contains("id"), "ball_pos_x", "ball_pos_y", "ball_pos_z","goal") %>%
@@ -82,28 +55,28 @@ boost_data_ids <- data_with_boost_xg %>%
 # noticed that there are repeated rows
 # 1456 repetitions
 # counts are all 4 or 9
-fi <- boost_data_ids %>% 
-  group_by(across(all_of(c("shot_taker_id","ball_pos_x", "ball_pos_y", 
-                           "ball_pos_z","goal")))) %>%
-  summarise(count = n()) %>% 
-  filter(count > 1)
-
-table(fi$count)
+# fi <- boost_data_ids %>% 
+#   group_by(across(all_of(c("shot_taker_id","ball_pos_x", "ball_pos_y", 
+#                            "ball_pos_z","goal")))) %>%
+#   summarise(count = n()) %>% 
+#   filter(count > 1)
+# 
+# table(fi$count)
 
 # 1603 repetitions
 # counts are all 2 or 3
-foo <- boost_data_ids %>% 
-  group_by(across(all_of(names(boost_data_ids)))) %>%
-  summarise(count = n()) %>% 
-  filter(count > 1) 
+# foo <- boost_data_ids %>% 
+#   group_by(across(all_of(names(boost_data_ids)))) %>%
+#   summarise(count = n()) %>% 
+#   filter(count > 1) 
+# 
+# table(foo$count)
 
-table(foo$count)
-
-# deal with repetitions 
+# deal with repetitions, grab only distinct rows
 boost_data_ids <- boost_data_ids %>% 
   distinct(across(all_of(names(boost_data_ids))))
 
-# calculate excess goals saved when player is "opponent 1"
+# calculate XG saved when player is "opponent 1"
 xg_saved_1 <- boost_data_ids %>%
   rename("saver_id" = "opp_1_id") %>%
   mutate(defended_xg = xg - goal) %>%
@@ -113,7 +86,7 @@ xg_saved_1 <- boost_data_ids %>%
   ungroup() %>%
   select(c("saver_id","total_defended","count"))
 
-# calculate excess goals saved when player is "opponent 2"
+# calculate XG saved when player is "opponent 2"
 xg_saved_2 <- boost_data_ids %>%
   rename("saver_id" = "opp_2_id") %>%
   mutate(defended_xg = xg - goal) %>%
@@ -123,58 +96,61 @@ xg_saved_2 <- boost_data_ids %>%
   ungroup() %>%
   select(c("saver_id","total_defended","count"))
 
-# create a dataframe of all players who made a shot
-unique_ids <- data_with_boost_xg %>%
-  group_by(data_with_boost_xg$shot_taker_id) %>%
-  summarise(count = n()) %>%
-  filter(count>20) %>%
-  rename("saver_id" = "data_with_boost_xg$shot_taker_id")
-
-# create a dataframe that contains excess goals saved
-xg_saved <- unique_ids %>%
-  inner_join(xg_saved_1, by = "saver_id") %>%
-  inner_join(xg_saved_2, by = "saver_id") %>%
-  mutate(total_defended = total_defended.x + total_defended.x) %>%
+# create a dataframe that contains total XG saved
+xg_saved <- xg_saved_1 %>%
+  full_join(xg_saved_2, by = "saver_id") %>%
+  replace_na(list('total_defended.x' = 0, 'count.x' = 0,
+                  'total_defended.y' = 0, 'count.y' = 0)) %>% 
+  mutate(total_defended = total_defended.x + total_defended.y) %>%
   mutate(total_count = count.x + count.y) %>%
-  mutate(excess_goals_saved = total_defended / total_count) %>%
-  select(c("saver_id", "excess_goals_saved")) %>% 
-  arrange(desc(excess_goals_saved))
+  mutate(avg_xg_saved = total_defended / total_count) %>%
+  filter(total_count>10) %>% 
+  select(c("saver_id", "avg_xg_saved")) %>% 
+  arrange(desc(avg_xg_saved))
 
-# top 5 players in terms of excess goals saved
-head(xg_saved, 5)
-
-# join with excess goals dataframe to contrast
-excess_goals_and_saved <- xg_saved %>% 
+# join with XG dataframe to contrast
+avg_xg_off_def <- xg_saved %>% 
   inner_join(aggregate, by = c("saver_id" = "shot_taker_id"))
 
-# plot relationship between excess saved & excess goals
-excess_goals_and_saved %>%
-  ggplot(aes(x = excess_goals_saved, y = outperformance)) + 
+# plot relationship between xg made and xg defended
+avg_xg_off_def %>%
+  ggplot(aes(x = avg_xg_saved, y = avg_xg)) + 
   geom_point() +
-  geom_smooth(method=lm)
+  geom_smooth(method=lm) +
+  xlab("Average xG Defended (Defensive Skill)") +
+  ylab("Average xG (Offensive Skill)") + 
+  ggtitle("Relationship between Defensive and Offensive Skill") +
+  theme(plot.title = element_text(hjust = 0.5))
 
-# we only have 177 data points
-nrow(excess_goals_and_saved) 
+# we only have 964 data points
+nrow(avg_xg_off_def) 
 
 # do linear regression
-excess_lm = lm(outperformance~excess_goals_saved, 
-               data = excess_goals_and_saved)
-summary(excess_lm)
+offense_defense_lm = lm(avg_xg~avg_xg_saved, 
+               data = avg_xg_off_def)
+summary(offense_defense_lm)
 
 #### result:
+# Call:
+#   lm(formula = avg_xg ~ avg_xg_saved, data = avg_xg_off_def)
+# 
+# Residuals:
+#   Min        1Q    Median        3Q       Max 
+# -0.227169 -0.045625 -0.001817  0.048092  0.312726 
+# 
 # Coefficients:
 #   Estimate Std. Error t value Pr(>|t|)    
-# (Intercept)         0.98980    0.02111  46.892   <2e-16 ***
-#   excess_goals_saved -0.53799    0.24358  -2.209   0.0285 *  
-#   ---
+# (Intercept)   0.344317   0.002277  151.20   <2e-16 ***
+#   avg_xg_saved -0.014816   0.022443   -0.66    0.509    
+# ---
 #   Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
 # 
-# Residual standard error: 0.2729 on 175 degrees of freedom
-# Multiple R-squared:  0.02712,	Adjusted R-squared:  0.02156 
-# F-statistic: 4.878 on 1 and 175 DF,  p-value: 0.0285
+# Residual standard error: 0.07445 on 1078 degrees of freedom
+# Multiple R-squared:  0.0004041,	Adjusted R-squared:  -0.0005231 
+# F-statistic: 0.4358 on 1 and 1078 DF,  p-value: 0.5093
 
 
-################################# Excess Goals Saved #################################
+################################# XGoals Saved #################################
 ## approach 2
 ## we only assign excess goals saved to the player who is nearest to the 
 ## shot-taker
@@ -199,47 +175,46 @@ opp_2_save <- boost_data_ids %>%
   ungroup() %>%
   select(c("saver_id","total_defended","count"))
 
-xg_saved_attempt_2 <- unique_ids %>%
-  inner_join(opp_1_save, by = "saver_id") %>%
-  inner_join(opp_2_save, by = "saver_id") %>%
+xg_saved_attempt_2 <- opp_1_save %>% 
+  full_join(opp_2_save, by = "saver_id") %>%
+  replace_na(list('total_defended.x' = 0, 'count.x' = 0,
+                    'total_defended.y' = 0, 'count.y' = 0)) %>% 
   mutate(total_defended = total_defended.x + total_defended.x) %>%
   mutate(total_count = count.x + count.y) %>%
-  mutate(excess_goals_saved = total_defended / total_count) %>%
-  select(c("saver_id", "excess_goals_saved")) %>% 
-  arrange(desc(excess_goals_saved))
-
-nrow(xg_saved_attempt_2)
+  mutate(avg_xg_saved = total_defended / total_count) %>%
+  filter(total_count>10) %>% 
+  select(c("saver_id", "avg_xg_saved")) %>% 
+  arrange(desc(avg_xg_saved))
 
 # join with excess goals dataframe to contrast
-excess_goals_and_saved_2 <- xg_saved_attempt_2 %>% 
+avg_xg_off_def_2 <- xg_saved_attempt_2 %>% 
   inner_join(aggregate, by = c("saver_id" = "shot_taker_id"))
 
 # plot relationship between excess saved & excess goals
-excess_goals_and_saved_2 %>%
-  ggplot(aes(x = excess_goals_saved, y = outperformance)) + 
+avg_xg_off_def_2 %>%
+  ggplot(aes(x = avg_xg_saved, y = avg_xg)) + 
   geom_point() +
   geom_smooth(method=lm) +
-  xlab("Average xG Defended Against (Defensive Power)") +
-  ylab("Average Actual Goals Over xG (Offensive Power)")
+  xlab("Average xG Defended (Defensive Skill)") +
+  ylab("Average xG (Offensive Skill)") + 
+  ggtitle("Relationship between Defensive and Offensive Skill") +
+  theme(plot.title = element_text(hjust = 0.5))
 
-# we have 2 fewer datapoints, at 175 rows now
-nrow(excess_goals_and_saved_2) 
+setwd("~/Desktop/Final Project/stat401-rocketleague/results")
+ggsave("def_off.png")
+
+
+# 649 rows
+nrow(avg_xg_off_def_2) 
+
+# 105 rows with a perfect 0 
+nrow(avg_xg_off_def_2[avg_xg_off_def_2$avg_xg_saved == 0,])
 
 # do linear regression
-excess_lm_2 = lm(outperformance~excess_goals_saved, 
-               data = excess_goals_and_saved)
+excess_lm_2 = lm(avg_xg~avg_xg_saved, 
+               data = avg_xg_off_def_2)
 summary(excess_lm_2)
 
-## results
-# Coefficients:
-#   Estimate Std. Error t value Pr(>|t|)    
-# (Intercept)         0.99235    0.02116  46.900   <2e-16 ***
-#   excess_goals_saved -0.63584    0.25651  -2.479   0.0141 *  
-#   ---
-#   Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
-# 
-# Residual standard error: 0.2719 on 175 degrees of freedom
-# Multiple R-squared:  0.03392,	Adjusted R-squared:  0.0284 
-# F-statistic: 6.144 on 1 and 175 DF,  p-value: 0.01413
+# 03f216c44bb24c0ebed7f101bae5aabc
+# opp_2_save[opp_2_save$saver_id == '03f216c44bb24c0ebed7f101bae5aabc',]
 
-# very slightly better r-squared (0.2 to 0.3) but not significant enough
