@@ -16,6 +16,8 @@ shot_data <- game_data %>%
   filter(shot == TRUE)  %>%
   select(-c(shot))
 
+dim(shot_data)
+
 clean_shot_data <- shot_data %>%
   select(-c(frame, time, is_orange,
             opp_1_id, opp_2_id)) %>%

@@ -29,7 +29,7 @@ knitr::include_graphics("../results/coverpage.jpeg")
 
 Rocket League is a multi-platform game where players control cars with a rocket booster and aim to score as many goals as possible within 5 minutes using an oversized ball. The ball never leaves the field and is a team game, but for our analysis, we focused on 2 versus 2 player mode. Players have the ability to control the direction, velocity, and rotation of their cars and can jump to hit the ball. This allows players the ability to take shots or control the car to dribble, pass, and block incoming shots.
 
-Our dataset includes random frames of 2 versus 2 player Rocket League games that includes location data of all 4 players, car features, ball position, and whether or not a particular shot resulted in a goal. The dataset is from [ website -- to write ]
+Our dataset includes random frames of 2 versus 2 player Rocket League games that includes location data of all 4 players, car features, ball position, and whether or not a particular shot resulted in a goal. The dataset is from [Ball Chasing](ballchasing.com), which includes data from various Rocket League game replays.
 
 For our analysis, we built an expected goals (xG) model using location data to predict goals for a given frozen game frame. xG is important in that it is an estimator of goals a team is expected to score in the long run. Using the xG model, we were able to explore individual play styles and understand characteristics of the top two Rocket League championship players. 
 
@@ -44,11 +44,10 @@ We found the following insights:
 \newpage
 
 # Data Source
-[ to write ]
+We obtained our data from [Ball Chasing](ballchasing.com), which is a website that records various Rocket League game replay data, along with the carball Python package that combines various tools for decompiling Rocket League replays. For our expected goals model, our raw dataset included random frames from 4,328 Rocket League 2v2 games over Platinum 3 level, which yielded 657,897 frames in total. For our analysis of the top two Rocket League champions, we scraped data from Ball Chasing. 
 
 # Data Cleaning
-- dropped car features, only used location data
-- because we are interested in expected goals and evaluating shot ability, we filtered for shot = true only
+Because our analysis is on intended shot attempts, we filtered the data for frames that included shot attempts only, which yielded 60,341 observations that we used for our expected goals models. While the raw dataset included various features, such as car features (like dodging, double jumping, ball cam), we transformed the dataset to include location data (ball, shot taker, teammate, and both opponent's locations) and various velocity measurements. 
 
 # Exploratory Data Analysis
 ## Field Set Up
@@ -196,7 +195,7 @@ To visualize relationships across these player-specific aggregate metrics, we cr
 # Appendix
 
 ## Subset of location features used in models
-```{r}
+```{r, echo = FALSE}
 data <- read.csv("../results/clean_shot_data.csv") %>%
   select(-c(X, idx)) %>%
   select(-contains("_ang_vel_")) %>%
@@ -210,7 +209,7 @@ names(data) %>%
 ```
 
 ## Logistic regression summary output
-```{r glm-fit}
+```{r glm-fit, echo = FALSE}
 load("../results/glm_fit.rda")
 summary(glm_fit)
 ```
