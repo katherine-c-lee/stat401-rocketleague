@@ -307,7 +307,7 @@ In sum, we built an expected goals model using xgBoost to predict goal probabili
 
 2. Players rarely adopt a strictly offensive or strictly defensive position, and offensive and defensive ability do not correlate. This supports the idea that most play styles involve moving around a field and being a dynamic player.
 
-3. Average xG and number of shot attempts are not always the only contributing factors to determining the outcome of a match. There are many other features, like luck and defensive ability, that influence the outcome. 
+3. As our case study shows, we can use xG as a helpful statistic in uncovering a deeper level of analysis. Furthermore, when xG deviates from the actual game outcome, it begs the question: what’s causing the difference? Is it the opponent team’s defensive prowess, the home team’s weak defense, or just dumb luck? Regardless, xG can help a boring game seem more fascinating and a fascinating game seem mundane.
 
 # Appendix
 
